@@ -1,0 +1,42 @@
+{% extends "global/Base.html" %}
+{% load staticfiles otree_tags %}
+
+{% block internal_scripts %}
+    {{ block.super }}
+
+    <script>
+        function randomInt(min, maxExclusive) {
+            return min + Math.floor(Math.random() * maxExclusive);
+        }
+
+        function randomChoice(arr) {
+            var idx = randomInt(0, arr.length);
+            return arr[idx];
+        }
+
+        $(function() {
+            $('div#time-limit').show();
+            var currentDate = new Date();
+            var milliseconds = {{ timeout_warning_seconds }} * 1000;
+            $('div#clock').countdown(currentDate.valueOf() + milliseconds, function(event) {
+                switch(event.type) {
+                    case "seconds":
+                        $(this).find('span#'+event.type).html(event.value);
+                        break;
+                    case "minutes":
+                        $(this).find('span#minutes').html(event.lasting.hours * 60 + parseInt(event.value));
+                        break;
+                    case "finished":
+                        $('#clock').hide(duration=0);
+                        var warning_html = '<p>' + "{{ timeout_warning_message }}" + '</p>';
+                        $('#time-limit').append(warning_html);
+                        $('#time-limit').removeClass('alert-warning').addClass('alert-danger');
+
+                        // no auto-submit!
+
+                        break;
+                }
+            });
+        });
+    </script>
+{% endblock %}
