@@ -1,5 +1,3 @@
-from django import forms
-
 from otree.api import (
     models, widgets, BaseConstants, BaseSubsession, BaseGroup, BasePlayer,
     Currency as c, currency_range
@@ -8,10 +6,10 @@ from otree.api import (
 from otreeutils.surveys import create_player_model_for_survey
 
 
-author = 'Your name here'
+author = 'Markus Konrad'
 
 doc = """
-Your app description
+Example 2 for usage of the otreeutils package.
 """
 
 
@@ -29,6 +27,8 @@ class Group(BaseGroup):
     pass
 
 
+# some pre-defined choices
+
 GENDER_CHOICES = (
     ('female', 'Female'),
     ('male', 'Male'),
@@ -40,13 +40,16 @@ YESNO_CHOICES = (
     ('no', 'No'),
 )
 
-Player = create_player_model_for_survey('otreeutils_example2.models', (
+# define survey questions per page
+# for each page define a page title and a list of questions
+# the questions have a field name, a question text (input label), and a field type (model field class)
+SURVEY_DEFINITIONS = (
     {
         'page_title': 'Survey Questions - Page 1',
         'survey_fields': [
-            ('q1_a', {
-                'text': 'How old are you?',
-                'field': models.PositiveIntegerField(min=18, max=100),
+            ('q1_a', {   # field name (which will also end up in your "Player" class and hence in your output data)
+                'text': 'How old are you?',   # survey question
+                'field': models.PositiveIntegerField(min=18, max=100),  # the same as in normal oTree model field definitions
             }),
             ('q1_b', {
                 'text': 'Please tell us your gender.',
@@ -76,4 +79,7 @@ Player = create_player_model_for_survey('otreeutils_example2.models', (
             }),
         ]
     }
-))
+)
+
+# now dynamically create the Player class from the survey definitions
+Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS)
