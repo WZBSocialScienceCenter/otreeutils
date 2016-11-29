@@ -1,0 +1,34 @@
+{% extends "otreeutils/ExtendedPage.html" %}
+{% load staticfiles otree_tags %}
+
+{% block title %}
+   Example 1.2: A page with timeout warning.
+{% endblock %}
+
+{% block content %}
+
+<p>
+    A timeout warning after 10 seconds with a custom warning message. No auto-submit or anything like that.
+</p>
+
+<p>This is your page class:</p>
+
+<pre>
+class ExtendedPageWithTimeoutWarning(ExtendedPage):
+    timeout_warning_seconds = 10
+    timeout_warning_message = "You're too slow. Hurry up!"
+</pre>
+
+<p>Don't forget this at the beginning of you template file:</p>
+
+<pre>
+{% verbatim %}
+{% extends "otreeutils/ExtendedPage.html" %}
+{% endverbatim %}
+</pre>
+
+<p>You can also use timeout warnings in understanding questions pages.</p>
+
+{% next_button %}
+
+{% endblock %}

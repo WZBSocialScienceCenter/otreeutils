@@ -13,8 +13,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # DEBUG mode. If OTREE_PRODUCTION==1, then DEBUG=False
 if environ.get('OTREE_PRODUCTION') not in {None, '', '0'}:
     DEBUG = False
+    APPS_DEBUG = False
 else:
     DEBUG = True
+    APPS_DEBUG = True   # will set a debug variable to true in the template files
 
 ADMIN_USERNAME = 'admin'
 
@@ -107,12 +109,12 @@ SESSION_CONFIG_DEFAULTS = {
 
 
 SESSION_CONFIGS = [
-    # {
-    #     'name': '...',
-    #     'display_name': '...',
-    #     'num_demo_participants': ...,
-    #     'app_sequence': ['...'],
-    # }
+    {
+        'name': 'otreeutils_example1',
+        'display_name': 'oTree Utils Example 1',
+        'num_demo_participants': 1,   # doesn't matter
+        'app_sequence': ['otreeutils_example1'],
+    }
 ]
 
 # anything you put after the below line will override
