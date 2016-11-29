@@ -15,6 +15,7 @@ class AllGroupsWaitPage(WaitPage):
 
 class ExtendedPage(Page):
     """Base page class with extended functionality."""
+    page_title = ''
     timeout_warning_seconds = None    # set this to enable a timeout warning -- no form submission, just a warning
     timeout_warning_message = 'Please hurry up, the time is over!'
 
@@ -27,6 +28,7 @@ class ExtendedPage(Page):
         ctx = super(ExtendedPage, self).get_context_data(**kwargs)
 
         ctx.update({
+            'page_title': self.page_title,
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
             'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
@@ -41,7 +43,6 @@ class UnderstandingQuestionsPage(ExtendedPage):
     Displays questions as defined in "questions" list.
     Optionally record the number of unsuccessful attempts for solving the questions.
     """
-    page_title = ''
     default_hint = 'This is wrong. Please reconsider.'
     default_hint_empty = 'Please fill out this answer.'
     questions = []  # define the understanding questions here. add dicts with the following keys: "question", "options", "correct"
@@ -84,7 +85,6 @@ class UnderstandingQuestionsPage(ExtendedPage):
             form.add_field(self.form_field_n_wrong_attempts, forms.CharField(initial=0, widget=forms.HiddenInput))
 
         return {
-            'page_title': self.page_title,
             'questions_form': form,
             'n_questions': len(self.questions),
             'hint_empty': self.default_hint_empty,

@@ -32,6 +32,7 @@ class SomeUnderstandingQuestions(UnderstandingQuestionsPage):
 
 
 class ExtendedPageWithTimeoutWarning(ExtendedPage):
+    page_title = 'Example 1.2: A page with timeout warning.'
     timeout_warning_seconds = 10
     timeout_warning_message = "You're too slow. Hurry up!"
 

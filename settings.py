@@ -111,9 +111,15 @@ SESSION_CONFIG_DEFAULTS = {
 SESSION_CONFIGS = [
     {
         'name': 'otreeutils_example1',
-        'display_name': 'oTree Utils Example 1',
+        'display_name': 'oTree Utils Example 1 (Understanding questions, timeout warnings)',
         'num_demo_participants': 1,   # doesn't matter
         'app_sequence': ['otreeutils_example1'],
+    },
+    {
+        'name': 'otreeutils_example2',
+        'display_name': 'oTree Utils Example 2 (Surveys)',
+        'num_demo_participants': 1,  # doesn't matter
+        'app_sequence': ['otreeutils_example2'],
     }
 ]
 
