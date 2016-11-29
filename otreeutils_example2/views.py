@@ -3,16 +3,34 @@ from . import models
 from ._builtin import Page, WaitPage
 from .models import Constants
 
-from otreeutils.surveys import SurveyPage
+from otreeutils.surveys import SurveyPage, setup_survey_pages
 
-#survey_pages = generate_pages_for_survey_player(models.Player, 'otreeutils_example2.views')
+
+class SurveyIntro(Page):
+    pass
 
 
 class SurveyPage1(SurveyPage):
     pass
 
-SurveyPage1.setup_survey(models.Player, 0)
+
+class SurveyPage2(SurveyPage):
+    pass
+
+
+class SurveyPage3(SurveyPage):
+    pass
+
+survey_pages = [
+    SurveyPage1,
+    SurveyPage2,
+    SurveyPage3,
+]
+
+setup_survey_pages(models.Player, survey_pages)
 
 page_sequence = [
-    SurveyPage1,
+    SurveyIntro,
 ]
+
+page_sequence.extend(survey_pages)

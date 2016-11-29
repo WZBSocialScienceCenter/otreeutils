@@ -42,27 +42,37 @@ YESNO_CHOICES = (
 
 Player = create_player_model_for_survey('otreeutils_example2.models', (
     {
-        'page_title': 'Page 1',
+        'page_title': 'Survey Questions - Page 1',
         'survey_fields': [
             ('q1_a', {
                 'text': 'How old are you?',
                 'field': models.PositiveIntegerField(min=18, max=100),
-                'form_field': forms.IntegerField(min_value=18, max_value=100, required=True),
             }),
             ('q1_b', {
                 'text': 'Please tell us your gender.',
                 'field': models.CharField(choices=GENDER_CHOICES),
-                'form_field': forms.ChoiceField(choices=GENDER_CHOICES),
             }),
         ]
     },
     {
-        'page_title': 'Page 2',
+        'page_title': 'Survey Questions - Page 2',
         'survey_fields': [
             ('q2_a', {
+                'text': 'Are you a student?',
+                'field': models.CharField(choices=YESNO_CHOICES),
+            }),
+            ('q2_b', {
+                'text': 'If so, in which field of study?',
+                'field': models.CharField(blank=True),
+            }),
+        ]
+    },
+    {
+        'page_title': 'Survey Questions - Page 3',
+        'survey_fields': [
+            ('q3_a', {
                 'text': 'Did you enjoy the experiment?',
                 'field': models.CharField(choices=YESNO_CHOICES),
-                'form_field': forms.ChoiceField(choices=GENDER_CHOICES),
             }),
         ]
     }

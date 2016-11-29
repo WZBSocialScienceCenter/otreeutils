@@ -1,6 +1,4 @@
-from django import forms
-
-from otree.api import BasePlayer, Page
+from otree.api import BasePlayer
 
 from .pages import ExtendedPage
 
@@ -25,38 +23,19 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
     return model_cls
 
 
-# def generate_pages_for_survey_player(player_cls, module, base_cls=None, base_template='otreeutils/SurveyPage.html'):
-#     if base_cls is None:
-#         base_cls = otree.views.abstract.PlayerUpdateView
-#
-#     survey_definitions = player_cls.get_survey_definitions()
-#     pages = []
-#     for i, survey_page in enumerate(survey_definitions):
-#         attrs = {
-#             '__module__': module,
-#             'template_name': base_template
-#         }
-#         attrs.update(survey_page)
-#
-#         page_cls = type('SurveyPage%d' % (i+1), (_SurveyPageMixin, ), attrs)
-#
-#         pages.append(page_cls)
-#
-#     return pages
-#
-
 class _SurveyModelMixin(object):
     @classmethod
     def get_survey_definitions(cls):
         return cls._survey_defs
 
 
-# class _SurveyPageMixin(otree.views.abstract.PlayerUpdateView):
-#     pass
+def setup_survey_pages(form_model, survey_pages):
+    for i, page in enumerate(survey_pages):
+        page.setup_survey(form_model, i)
+
 
 class SurveyPage(ExtendedPage):
     template_name = 'otreeutils/SurveyPage.html'
-    form_fields = []
     field_labels = {}
 
     @classmethod
@@ -65,6 +44,7 @@ class SurveyPage(ExtendedPage):
         cls.form_model = player_cls
         cls.page_title = survey_defs['page_title']
 
+        cls.form_fields = []
         for field_name, qdef in survey_defs['survey_fields']:
             cls.field_labels[field_name] = qdef['text']
             cls.form_fields.append(field_name)
