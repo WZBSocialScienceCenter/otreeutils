@@ -1,0 +1,28 @@
+{% extends "otreeutils/ExtendedPage.html" %}
+{% load staticfiles otree_tags %}
+
+{% block app_styles %}
+<link href="{% static 'otreeutils/understanding.css' %}" rel="stylesheet" type="text/css">
+{% endblock %}
+
+{% block app_scripts %}
+<script src="{% static 'otreeutils/understanding.js' %}"></script>
+{% endblock %}
+
+
+{% block title %}
+    {{ page_title }}
+{% endblock %}
+
+{% block content %}
+
+<ul>
+    {{ survey_form.as_ul }}
+</ul>
+
+
+{% next_button %}
+
+{% endblock %}
+
+
