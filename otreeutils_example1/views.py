@@ -22,6 +22,7 @@ class SomeUnderstandingQuestions(UnderstandingQuestionsPage):
             'question': 'What is π?',
             'options': [1.2345, 3.14159],
             'correct': 3.14159,
+            'hint': 'You can have a look at Wikipedia!'
         },
         {
             'question': 'Is this too easy?',
