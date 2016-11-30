@@ -9,3 +9,4 @@ _coverage_results/
 build/
 dist/
 otreeutils.egg-info/
+Makefile
