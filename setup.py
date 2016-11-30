@@ -7,26 +7,19 @@ from setuptools import setup
 
 setup(
     name='otreeutils',
-
-    # Versions should comply with PEP440.  For a discussion on single-sourcing
-    # the version across setup.py and the project code, see
-    # https://packaging.python.org/en/latest/single_source_version.html
     version='0.1.0',
 
     description='A package with common oTree utilities',
     long_description="""This repository contains the package otreeutils. It features a set of common helper / utility
 functions and classes often needed when developing experiments with oTree.""",
 
-    # The project's main homepage.
     url='https://github.com/WZBSocialScienceCenter/otreeutils',
 
-    # Author details
     author='Markus Konrad',
     author_email='markus.konrad@wzb.eu',
 
     license='Apache 2.0',
 
-    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -50,5 +43,7 @@ functions and classes often needed when developing experiments with oTree.""",
     keywords='otree experiments social science development',
 
     packages=['otreeutils'],
+    include_package_data=True,
+
     install_requires=['otree-core'],
 )
