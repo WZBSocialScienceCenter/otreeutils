@@ -12,6 +12,9 @@ This repository contains the package `otreeutils`. It features a set of common h
 
 **Compatibility note:** This package has been tested with oTree v1.0.12 but should work with at least any oTree 1.x version. 
 
+This package is [available on PyPI](https://pypi.python.org/pypi/otreeutils) and can be installed
+via `pip install otreeutils`.
+
 ## Examples
 
 The repository contains two example apps which show the respective features and how they can be used in own experiments:
@@ -19,11 +22,13 @@ The repository contains two example apps which show the respective features and 
 * `otreeutils_example1` -- Understanding questions and timeout warnings
 * `otreeutils_example2` -- Surveys
 
-## Usage
+## Installation and setup
 
 In order to use *otreeutils* in your experiment implementation, you only need to do two things:
 
-1. Copy the `otreeutils` folder to your oTree experiment directory
+1. Either install the package from [PyPI](https://pypi.python.org/pypi/otreeutils) via
+   *pip* (`pip install otreeutils`) or download/clone this github repository and copy
+   the `otreeutils` folder to your oTree experiment directory
 2. Edit your `settings.py` so that you add "otreeutils" to your `INSTALLED_APPS` list
 
 ## API overview
