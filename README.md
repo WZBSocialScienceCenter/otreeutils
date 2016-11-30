@@ -21,11 +21,10 @@ The repository contains two example apps which show the respective features and 
 
 ## Usage
 
-In order to use *otreeutils* in your experiment implementation, you need to copy three folders into your oTree experiment directory:
+In order to use *otreeutils* in your experiment implementation, you only need to do two things:
 
-1. The `otreeutils` folder that contains the Python package must be copied to your oTree experiment directory
-2. The `_static/otreeutils` folder that contains JavaScript code must be copied to the `_static` folder of your oTree experiment directory
-3. The `_templates/otreeutils` folder that contains the HTML templates must be copied to the `_templates` folder of your oTree experiment directory
+1. Copy the `otreeutils` folder to your oTree experiment directory
+2. Edit your `settings.py` so that you add "otreeutils" to your `INSTALLED_APPS` list
 
 ## API overview
 
