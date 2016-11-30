@@ -6,3 +6,7 @@ staticfiles
 *~
 *.sqlite3
 _coverage_results/
+build/
+dist/
+otreeutils.egg-info/
+Makefile
