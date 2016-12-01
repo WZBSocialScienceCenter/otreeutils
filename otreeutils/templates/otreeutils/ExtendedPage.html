@@ -1,5 +1,51 @@
 {% extends "global/Base.html" %}
-{% load staticfiles otree_tags %}
+{% load i18n %}
+{% load floppyforms staticfiles otree_tags %}
+
+{% block body_main %}
+    <div class="container" style='max-width:970px'>
+        <div class="page-header" style="padding-top: 40px">
+            <h2>{% block title %}{{ page_title }}{% endblock %}</h2>
+        </div>
+        <div>
+            {% if view.has_timeout or view.has_timeout_warning %}
+                {% include 'otree/includes/TimeLimit.html' with form_element_id="form" %}
+            {% endif %}
+
+            {% if form.errors %}
+                <div class="alert alert-danger">
+                    {% blocktrans trimmed %}Please fix the errors in the form.{% endblocktrans %}
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div id="error-notice" class="alert alert-danger"
+                 style="display:none">
+                {% blocktrans trimmed %}
+                    An error occurred. Please check the logs or ask
+                    the administrator for help.{% endblocktrans %}
+            </div>
+
+
+            <form action="" method="post" role="form" class="form"
+                  id="form">{% csrf_token %}
+                <input type="hidden" value="{{ request.path }}"
+                       name="origin_url"/>
+                {% form form using %}
+                    {% formconfig row using "floppyforms/rows/bootstrap.html" %}
+                    <div id="otree-content">
+                        {% block content %}{% endblock %}
+                    </div>
+                {% endform %}
+            </form>
+        </div>
+        <br/>
+        {% if view.is_debug %}
+            {% include 'otree/includes/debug_info.html' %}
+        {% endif %}
+    </div>
+{% endblock %}
+
 
 {% block internal_scripts %}
     {{ block.super }}
@@ -39,8 +85,8 @@
             });
         });
     </script>
-{% endblock %}
 
-{% block title %}
-    {{ page_title }}
+    {% if view.has_timeout_warning %}
+        {% include 'otree/includes/TimeLimit.js.html' %}
+    {% endif %}
 {% endblock %}

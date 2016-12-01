@@ -20,9 +20,8 @@ class ExtendedPage(Page):
     timeout_warning_message = 'Please hurry up, the time is over!'
 
     @classmethod
-    def has_timeout(cls):
-        return super(ExtendedPage, cls).has_timeout() \
-               or (cls.timeout_warning_seconds is not None and cls.timeout_warning_seconds > 0)
+    def has_timeout_warning(cls):
+        return cls.timeout_warning_seconds is not None and cls.timeout_warning_seconds > 0
 
     def get_context_data(self, **kwargs):
         ctx = super(ExtendedPage, self).get_context_data(**kwargs)
