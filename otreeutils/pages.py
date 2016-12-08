@@ -23,11 +23,15 @@ class ExtendedPage(Page):
     def has_timeout_warning(cls):
         return cls.timeout_warning_seconds is not None and cls.timeout_warning_seconds > 0
 
+    def get_page_title(self):
+        """Override this method for a dynamic page title"""
+        return self.page_title
+
     def get_context_data(self, **kwargs):
         ctx = super(ExtendedPage, self).get_context_data(**kwargs)
 
         ctx.update({
-            'page_title': self.page_title,
+            'page_title': self.get_page_title(),
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
             'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
@@ -51,6 +55,10 @@ class UnderstandingQuestionsPage(ExtendedPage):
     form_fields = []   # no need to change this
     form_model = None
 
+    def get_questions(self):
+        """Override this method to return a dynamic list of questions"""
+        return self.questions
+
     def get_form_fields(self):
         if self.form_model:
             form_fields = super().get_form_fields()
@@ -68,7 +76,8 @@ class UnderstandingQuestionsPage(ExtendedPage):
         form = _UnderstandingQuestionsForm()
 
         # add questions to form
-        for q_idx, q_def in enumerate(self.questions):
+        questions = self.get_questions()
+        for q_idx, q_def in enumerate(questions):
             answer_field = forms.ChoiceField(label=q_def['question'],
                                              choices=_choices_for_field(q_def['options']))
             correct_val_field = forms.CharField(initial=q_def['correct'],
@@ -85,7 +94,7 @@ class UnderstandingQuestionsPage(ExtendedPage):
 
         return {
             'questions_form': form,
-            'n_questions': len(self.questions),
+            'n_questions': len(questions),
             'hint_empty': self.default_hint_empty,
             'form_field_n_wrong_attempts': self.form_field_n_wrong_attempts or '',
             'set_correct_answers': str(self.set_correct_answers).lower(),
