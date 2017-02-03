@@ -10,7 +10,7 @@ This repository contains the package `otreeutils`. It features a set of common h
 * Easier creation of surveys
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
 
-**Compatibility note:** This package has been tested with oTree v1.0.12 but should work with at least any oTree 1.x version. 
+**Compatibility note:** This package has been tested with oTree v1.0.12 and v1.1.8 but should work with at least any oTree 1.x version. 
 
 This package is [available on PyPI](https://pypi.python.org/pypi/otreeutils) and can be installed
 via `pip install otreeutils`.
@@ -49,6 +49,8 @@ The template variable `debug` is toggled using an additional `APPS_DEBUG` variab
 Base class to implement understanding questions. A participant must complete all questions in order to proceed. You can display hints. Use it as follows:
 
 ```python
+from otreeutils.pages import UnderstandingQuestionsPage
+
 class SomeUnderstandingQuestions(UnderstandingQuestionsPage):
     page_title = 'Set a page title'
     questions = [
@@ -76,6 +78,9 @@ This function allows to dynamically create a `Player` model class for a survey. 
 At first you define your questions per page, for example like this:
 
 ```python
+from otreeutils.surveys import create_player_model_for_survey
+
+
 SURVEY_DEFINITIONS = (
     {
         'page_title': 'Survey Questions - Page 1',
@@ -110,6 +115,9 @@ You can then create the survey pages which will contain the questions for the re
  
 ```python
 # (in views.py)
+
+from otreeutils.surveys import SurveyPage, setup_survey_pages
+
 
 class SurveyPage1(SurveyPage):
     pass
