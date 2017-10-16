@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name='otreeutils',
-    version='0.2.1',
+    version='0.2.2',
 
     description='A package with common oTree utilities',
     long_description="""This repository contains the package otreeutils. It features a set of common helper / utility

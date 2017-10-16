@@ -50,6 +50,10 @@
 {% block internal_scripts %}
     {{ block.super }}
 
+    {% if use_legacy_timer_code and view.has_timeout_warning %}
+        {% include 'otree/includes/TimeLimit.js.html' %}
+    {% endif %}
+
     <script>
         function randomInt(min, maxExclusive) {
             return min + Math.floor(Math.random() * maxExclusive);
@@ -61,32 +65,47 @@
         }
 
         $(function() {
-            $('div#time-limit').show();
-            var currentDate = new Date();
-            var milliseconds = {{ timeout_warning_seconds }} * 1000;
-            $('div#clock').countdown(currentDate.valueOf() + milliseconds, function(event) {
-                switch(event.type) {
-                    case "seconds":
-                        $(this).find('span#'+event.type).html(event.value);
-                        break;
-                    case "minutes":
-                        $(this).find('span#minutes').html(event.lasting.hours * 60 + parseInt(event.value));
-                        break;
-                    case "finished":
-                        $('#clock').hide(duration=0);
-                        var warning_html = '<p>' + "{{ timeout_warning_message }}" + '</p>';
-                        $('#time-limit').append(warning_html);
-                        $('#time-limit').removeClass('alert-warning').addClass('alert-danger');
+            {% if use_legacy_timer_code %}
+                $('div#time-limit').show();
+                var currentDate = new Date();
+                var milliseconds = {{ timeout_warning_seconds }} * 1000;
+                $('div#clock').countdown(currentDate.valueOf() + milliseconds, function(event) {
+                    switch(event.type) {
+                        case "seconds":
+                            $(this).find('span#'+event.type).html(event.value);
+                            break;
+                        case "minutes":
+                            $(this).find('span#minutes').html(event.lasting.hours * 60 + parseInt(event.value));
+                            break;
+                        case "finished":
+                            $('#clock').hide(duration=0);
+                            var warning_html = '<p>' + "{{ timeout_warning_message }}" + '</p>';
+                            $('#time-limit').append(warning_html);
+                            $('#time-limit').removeClass('alert-warning').addClass('alert-danger');
 
-                        // no auto-submit!
+                            // no auto-submit!
 
-                        break;
-                }
-            });
+                            break;
+                    }
+                });
+            {% else %}
+                $('.otree-timer__time-left').unbind('finish.countdown');  // unbind finish event set by oTree
+                // set own event
+                $('.otree-timer__time-left').on('finish.countdown', function (event) {
+                    $('<input>').attr({
+                        type: 'hidden',
+                        name: 'timeout_happened',
+                        value: '1'
+                    }).appendTo('form');
+
+                    // DOES NOT SUBMIT FORM
+
+                    // show final warning message
+                    var warning_html = '<p>' + "{{ timeout_warning_message }}" + '</p>';
+                    $('#otree-timeout').html(warning_html);
+                    $('#otree-timeout').removeClass('alert-warning').addClass('alert-danger');
+                });
+            {% endif %}
         });
     </script>
-
-    {% if view.has_timeout_warning %}
-        {% include 'otree/includes/TimeLimit.js.html' %}
-    {% endif %}
 {% endblock %}

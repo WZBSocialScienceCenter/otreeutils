@@ -1,7 +1,9 @@
 import settings
+from distutils.version import StrictVersion
 
 from django import forms
 
+import otree
 from otree.api import Page, WaitPage
 
 APPS_DEBUG = getattr(settings, 'APPS_DEBUG', False)
@@ -23,6 +25,12 @@ class ExtendedPage(Page):
     def has_timeout_warning(cls):
         return cls.timeout_warning_seconds is not None and cls.timeout_warning_seconds > 0
 
+    def get_timeout_seconds(self):
+        if StrictVersion(otree.get_version()) >= StrictVersion('1.4') and self.has_timeout_warning():
+            return self.timeout_warning_seconds
+        else:
+            return None
+
     def get_page_title(self):
         """Override this method for a dynamic page title"""
         return self.page_title
@@ -35,6 +43,7 @@ class ExtendedPage(Page):
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
             'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
+            'use_legacy_timer_code': StrictVersion(otree.get_version()) < StrictVersion('1.4'),
         })
 
         return ctx
