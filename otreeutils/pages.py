@@ -2,6 +2,7 @@ import settings
 from distutils.version import StrictVersion
 
 from django import forms
+from django.utils.translation import ugettext as _
 
 import otree
 from otree.api import Page, WaitPage
@@ -18,6 +19,7 @@ class AllGroupsWaitPage(WaitPage):
 class ExtendedPage(Page):
     """Base page class with extended functionality."""
     page_title = ''
+    timer_warning_text = None
     timeout_warning_seconds = None    # set this to enable a timeout warning -- no form submission, just a warning
     timeout_warning_message = 'Please hurry up, the time is over!'
 
@@ -25,21 +27,16 @@ class ExtendedPage(Page):
     def has_timeout_warning(cls):
         return cls.timeout_warning_seconds is not None and cls.timeout_warning_seconds > 0
 
-    def get_timeout_seconds(self):
-        if StrictVersion(otree.get_version()) >= StrictVersion('1.4') and self.has_timeout_warning():
-            return self.timeout_warning_seconds
-        else:
-            return None
-
     def get_page_title(self):
         """Override this method for a dynamic page title"""
         return self.page_title
 
     def get_context_data(self, **kwargs):
         ctx = super(ExtendedPage, self).get_context_data(**kwargs)
-
+        default_timer_warning_text = getattr(self, 'timer_text', _("Time left to complete this page:"))
         ctx.update({
             'page_title': self.get_page_title(),
+            'timer_warning_text': self.timer_warning_text or default_timer_warning_text,
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
             'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
