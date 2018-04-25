@@ -2,23 +2,38 @@
 otreeutils setuptools based setup module
 """
 
+import os
+
 from setuptools import setup
+
+import otreeutils
+
+
+GITHUB_URL = 'https://github.com/WZBSocialScienceCenter/tmtoolkit'
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+# Get the long description from the README file
+with open(os.path.join(here, 'README.md')) as f:
+    long_description = f.read()
 
 
 setup(
-    name='otreeutils',
-    version='0.2.3',
+    name=otreeutils.__title__,
+    version=otreeutils.__version__,
 
-    description='A package with common oTree utilities',
-    long_description="""This repository contains the package otreeutils. It features a set of common helper / utility
-functions and classes often needed when developing experiments with oTree.""",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url=GITHUB_URL,
+    project_urls={
+        'Bug Reports': GITHUB_URL + '/issues',
+        'Source': GITHUB_URL,
+    },
 
-    url='https://github.com/WZBSocialScienceCenter/otreeutils',
-
-    author='Markus Konrad',
+    author=otreeutils.__author__,
     author_email='markus.konrad@wzb.eu',
 
-    license='Apache 2.0',
+    license=otreeutils.__license__,
 
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -40,7 +55,7 @@ functions and classes often needed when developing experiments with oTree.""",
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
 
-    keywords='otree experiments social science development',
+    keywords='otree experiments social science finance economics development',
 
     packages=['otreeutils'],
     include_package_data=True,
