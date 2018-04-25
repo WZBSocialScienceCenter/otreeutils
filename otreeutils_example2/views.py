@@ -1,3 +1,7 @@
+# Definition of views/pages for the survey.
+# Please note: When using oTree 2.x, this file should be called "pages.py" instead of "views.py"
+#
+
 from otree.api import Currency as c, currency_range
 from . import models
 from ._builtin import Page, WaitPage

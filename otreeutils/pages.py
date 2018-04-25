@@ -10,6 +10,9 @@ from otree.api import Page, WaitPage
 APPS_DEBUG = getattr(settings, 'APPS_DEBUG', False)
 DEBUG_FOR_TPL = str(APPS_DEBUG).lower()
 
+otree_base_version = 1 if StrictVersion(otree.__version__) < StrictVersion('2.0') else 2
+extended_page_tpl = 'otreeutils/ExtendedPage%d.html' % otree_base_version
+
 
 class AllGroupsWaitPage(WaitPage):
     """A wait page that waits for all groups to arrive."""
@@ -27,6 +30,12 @@ class ExtendedPage(Page):
     def has_timeout_warning(cls):
         return cls.timeout_warning_seconds is not None and cls.timeout_warning_seconds > 0
 
+    def get_template_names(self):
+        if self.__class__ is ExtendedPage:
+            return [extended_page_tpl]
+        else:
+            return super().get_template_names()
+
     def get_page_title(self):
         """Override this method for a dynamic page title"""
         return self.page_title
@@ -40,7 +49,9 @@ class ExtendedPage(Page):
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
             'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
-            'use_legacy_timer_code': StrictVersion(otree.get_version()) < StrictVersion('1.4'),
+            'otree_base_version': otree_base_version,
+            'extended_page_tpl': extended_page_tpl,
+            'use_legacy_timer_code': StrictVersion(otree.__version__) < StrictVersion('1.4'),
         })
 
         return ctx

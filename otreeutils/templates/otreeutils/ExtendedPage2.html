@@ -1,0 +1,63 @@
+{% extends "otree/Page.html" %}
+{% load i18n staticfiles otree %}
+
+{% block internal_scripts %}
+    {{ block.super }}
+
+    {% if view.has_timeout_warning %}
+        <script src="{% static 'otree/js/jquery.countdown.min.js' %}"></script>
+    {% endif %}
+
+    <script type="text/javascript">
+        function randomInt(min, maxExclusive) {
+            return min + Math.floor(Math.random() * maxExclusive);
+        }
+
+        function randomChoice(arr) {
+            var idx = randomInt(0, arr.length);
+            return arr[idx];
+        }
+
+        $(function() {
+            {% if view.has_timeout_warning %}
+                var html_tpl = $(
+                    '<div class="otree-timer alert alert-warning" id="otree-warning-timeout">' +
+                        '<p>{{ timer_warning_text }} ' +
+                            '<span style="font-weight: bold">' +
+                                '<span class="glyphicon glyphicon-time"></span>' +
+                                '<span class="otree-warning-timer__time-left"></span>' +
+                            '</span>' +
+                        '</p>' +
+                    '</div>'
+                );
+
+                $('.otree-body.container div:eq(1)').prepend(html_tpl);
+
+                var currentDate = new Date();
+                var remainingTimeoutSeconds = {{ timeout_warning_seconds|escapejs }};
+                var milliseconds = Math.floor(remainingTimeoutSeconds * 1000);
+                $('.otree-warning-timer__time-left').countdown(currentDate.valueOf() + milliseconds)
+                    .on('update.countdown', function (event) {
+                        // %-N is "Total count of minutes till the end, non-padded"
+                        // %S is seconds left
+                        var format = '%-N:%S';
+                        $(this).html(event.strftime(format));
+                    })
+                    .on('finish.countdown', function (event) {
+                        $('<input>').attr({
+                            type: 'hidden',
+                            name: 'timeout_warning_happened',
+                            value: '1'
+                        }).appendTo('form');
+
+                        // DOES NOT SUBMIT FORM
+
+                        // show final warning message
+                        var warning_html = '<p>' + "{{ timeout_warning_message }}" + '</p>';
+                        $('#otree-warning-timeout').html(warning_html);
+                        $('#otree-warning-timeout').removeClass('alert-warning').addClass('alert-danger');
+                    });
+            {% endif %}
+        });
+    </script>
+{% endblock %}
