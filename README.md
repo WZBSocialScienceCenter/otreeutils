@@ -1,6 +1,6 @@
 # otreeutils
 
-November 2016, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+November 2016 – April 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
 ## A package with common oTree utilities
 
@@ -12,7 +12,7 @@ This repository contains the package `otreeutils`. It features a set of common h
 
 **Compatibility note:** This package has been tested with oTree v1.0 through v1.4 and is also compatible with oTree v2.0. 
 
-This package is [available on PyPI](https://pypi.python.org/pypi/otreeutils) and can be installed
+This package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
 via `pip install otreeutils`.
 
 ## Examples
