@@ -21,9 +21,9 @@ with open(os.path.join(here, 'README.md')) as f:
 setup(
     name=otreeutils.__title__,
     version=otreeutils.__version__,
-
+    description='A package with common oTree utilities',
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     url=GITHUB_URL,
     project_urls={
         'Bug Reports': GITHUB_URL + '/issues',
@@ -51,6 +51,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
