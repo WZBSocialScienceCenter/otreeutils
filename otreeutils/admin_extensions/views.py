@@ -273,17 +273,50 @@ class ExportAppExtension(ExportApp):
 
     @classmethod
     def get_data_rows_for_app(cls, app_name):
-        data = cls.get_hierarchical_data_for_app(app_name)
+        data, colnames = cls.get_hierarchical_data_for_app(app_name, return_columns=True)
 
-        colnames, data_rowwise = columnwise_data_as_rows(hierarchical_data_columnwise(data))
+        # turn hierarchical data into column-wise data
+        coldata = hierarchical_data_columnwise(data)
 
-        rows = [[col.replace('__', '') for col in colnames]]
+        if not coldata:
+            return [[]]
+
+        # if there's no data for certain models, then their fields will not be listed in the columns
+        # however, we want all columns to be exported, even if they do not contain data
+
+        # make column names matchable
+        tmp_coldata = OrderedDict()
+        for c, v in coldata.items():
+            c = c.replace('__', '')
+            n_dots = c.count('.')
+            if n_dots > 1:
+                last_dot_idx = c.rindex('.')
+                cut_idx = c.rindex('.', 0, last_dot_idx)
+                c = c[cut_idx+1:]
+            elif n_dots == 0:
+                c = 'session.' + c
+
+            tmp_coldata[c] = v
+
+        coldata = tmp_coldata
+
+        # create final data by filling all-empty columns with None values
+        n_values = len(next(iter(coldata.values())))
+        coldata_full = OrderedDict()
+        for cname in colnames:
+            coldata_full[cname] = coldata.get(cname, [None] * n_values)
+
+        # convert to rowwise data
+        data_rowwise = columnwise_data_as_rows(coldata_full, with_header=False)
+
+        # prepend column name header
+        rows = [colnames]
         rows.extend(data_rowwise)
 
         return rows
 
     @classmethod
-    def get_hierarchical_data_for_app(cls, app_name):
+    def get_hierarchical_data_for_app(cls, app_name, return_columns=False):
         models_module = get_models_module(app_name)
         Player = models_module.Player
         Group = models_module.Group
@@ -347,26 +380,44 @@ class ExportAppExtension(ExportApp):
                 prefetch_custom[otree_model_name_lwr][m] = _rows_per_key_from_queryset(custom_qs, link_field_name)
 
         output_nested = []
-
+        ordered_columns_per_model = OrderedDict()
         for sess in Session.objects.filter(id__in=session_ids).values():
-            out_sess = _odict_from_row(sess, columns_for_models['session'])
+            sess_cols = columns_for_models['session']
+            if 'session' not in ordered_columns_per_model:
+                ordered_columns_per_model['session'] = sess_cols
+
+            out_sess = _odict_from_row(sess, sess_cols)
 
             out_sess['__subsession'] = []
             for subsess in prefetch_subsess[sess['id']]:
-                out_subsess = _odict_from_row(subsess, columns_for_models['subsession'])
+                subsess_cols = columns_for_models['subsession']
+                if 'subsession' not in ordered_columns_per_model:
+                    ordered_columns_per_model['subsession'] = subsess_cols
+
+                out_subsess = _odict_from_row(subsess, subsess_cols)
 
                 subsess_custom_models_rows = prefetch_custom.get('subsession', {})
                 for subsess_cmodel_name, subsess_cmodel_rows in subsess_custom_models_rows.items():
                     cmodel_cols = columns_for_custom_models[subsess_cmodel_name]
+                    if subsess_cmodel_name not in ordered_columns_per_model:
+                        ordered_columns_per_model[subsess_cmodel_name] = cmodel_cols
+
                     out_subsess['__' + subsess_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                                for cmodel_row in subsess_cmodel_rows[subsess['id']]]
                 out_subsess['__group'] = []
                 for grp in prefetch_group[subsess['id']]:
-                    out_grp = _odict_from_row(grp, columns_for_models['group'])
+                    grp_cols = columns_for_models['group']
+                    if 'group' not in ordered_columns_per_model:
+                        ordered_columns_per_model['group'] = grp_cols
+
+                    out_grp = _odict_from_row(grp, grp_cols)
 
                     grp_custom_models_rows = prefetch_custom.get('group', {})
                     for grp_cmodel_name, grp_cmodel_rows in grp_custom_models_rows.items():
                         cmodel_cols = columns_for_custom_models[grp_cmodel_name]
+                        if grp_cmodel_name not in ordered_columns_per_model:
+                            ordered_columns_per_model[grp_cmodel_name] = cmodel_cols
+
                         out_grp['__' + grp_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                            for cmodel_row in grp_cmodel_rows[grp['id']]]
                     out_grp['__player'] = []
@@ -374,11 +425,18 @@ class ExportAppExtension(ExportApp):
                         # because player.payoff is a property
                         player['payoff'] = player['_payoff']
 
-                        out_player = _odict_from_row(player, columns_for_models['player'])
+                        player_cols = columns_for_models['player']
+                        if 'player' not in ordered_columns_per_model:
+                            ordered_columns_per_model['player'] = player_cols
+
+                        out_player = _odict_from_row(player, player_cols)
 
                         player_custom_models_rows = prefetch_custom.get('player', {})
                         for player_cmodel_name, player_cmodel_rows in player_custom_models_rows.items():
                             cmodel_cols = columns_for_custom_models[player_cmodel_name]
+                            if player_cmodel_name not in ordered_columns_per_model:
+                                ordered_columns_per_model[player_cmodel_name] = cmodel_cols
+
                             out_player['__' + player_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                                      for cmodel_row in player_cmodel_rows[player['id']]]
 
@@ -390,7 +448,14 @@ class ExportAppExtension(ExportApp):
 
             output_nested.append(out_sess)
 
-        return output_nested
+        columns_flat = []
+        for model_name, model_cols in ordered_columns_per_model.items():
+            columns_flat.extend(['.'.join((model_name, c)) for c in model_cols])
+
+        if return_columns:
+            return output_nested, columns_flat
+        else:
+            return output_nested
 
     def get(self, request, *args, **kwargs):
         app_name = kwargs['app_name']
