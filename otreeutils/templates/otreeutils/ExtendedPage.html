@@ -31,7 +31,7 @@
                     '</div>'
                 );
 
-                $('.otree-body.container div:eq(1)').prepend(html_tpl);
+                $('#form').prepend(html_tpl);
 
                 var currentDate = new Date();
                 var remainingTimeoutSeconds = {{ timeout_warning_seconds|escapejs }};
@@ -60,4 +60,8 @@
             {% endif %}
         });
     </script>
+{% endblock %}
+
+{% block title %}
+    {{ page_title }}
 {% endblock %}
