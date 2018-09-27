@@ -93,7 +93,7 @@
                            data-uses-otreeutils="{{ uses_otreeutils_export }}">CSV</a>
                         {% if uses_otreeutils_export %}
                             |
-                            <a href="{% url 'ExportApp' app %}?json=1" target="_blank">JSON</a>
+                            <a href="{% url 'ExportApp' app %}?custom=1&json=1" target="_blank">JSON</a>
                         {% endif %}
                     </td>
                     <td>
@@ -159,6 +159,7 @@
             $('.download-link').click(function () {
                 $this = $(this);
                 var fileExtension = $this.data('fileExtension');
+                var usesOtreeutils = $this.data('usesOtreeutils') === 'True';
 
                 var linkId = $this.attr('id');
                 var content = {
@@ -169,6 +170,11 @@
                 if (appName) {
                     content['app_name'] = appName;
                 }
+
+                if (usesOtreeutils) {
+                    content['custom'] = 1;
+                }
+
                 socket.send(JSON.stringify(content));
                 $this.append(' <em>Downloading...</em>');
             })

@@ -9,11 +9,14 @@ from .views import ExportAppExtension, _export_xlsx, _export_csv
 
 class ExportDataChannelsExtension(ExportData):
     def post_receive(self, content: dict):
-        '''
+        """
         if an app name is given, export the app.
         otherwise, export all the data (wide).
         don't need time_spent or chat yet, they are quick enough
-        '''
+        """
+
+        if not content.get('custom'):
+            return super().post_receive(content)
 
         # authenticate
         # maybe it should be is_superuser or something else more specific

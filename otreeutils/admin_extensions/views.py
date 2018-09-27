@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from otree.views.admin import SessionData, pretty_name, pretty_round_name
 from otree.views.export import ExportIndex, ExportApp, get_export_response
 from otree.export import sanitize_for_live_update, get_rows_for_live_update, _export_csv, _export_xlsx,\
-    get_field_names_for_csv
+    get_field_names_for_csv, sanitize_for_csv
 from otree.common_internal import get_models_module
 from otree.db.models import Model
 from otree.models.participant import Participant
@@ -60,7 +60,7 @@ def _set_of_ids_from_rows_per_key(rows, idfield):
 
 
 def _odict_from_row(row, columns):
-    return OrderedDict((c, row[c]) for c in columns)
+    return OrderedDict((c, sanitize_for_csv(row[c])) for c in columns)
 
 
 class SessionDataExtension(SessionData):
@@ -296,7 +296,6 @@ class ExportIndexExtension(ExportIndex):
         return context
 
 
-
 class ExportAppExtension(ExportApp):
     @staticmethod
     def custom_columns_builder(custom_model_conf):
@@ -385,9 +384,9 @@ class ExportAppExtension(ExportApp):
         qs_subsession = Subsession.objects.filter(session_id__in=session_ids)\
             .select_related(*std_models_select_related.get('subsession', []))
 
-        prefetch_participants = {}              # participant ID -> participant row
+        prefetch_participants = defaultdict(list)        # session ID -> participant rows
         for row in Participant.objects.filter(id__in=participant_ids).values():
-            prefetch_participants[row['id']] = row
+            prefetch_participants[row['session_id']].append(row)
 
         prefetch_filter_ids_for_custom_models = {}
 
@@ -422,6 +421,16 @@ class ExportAppExtension(ExportApp):
                 ordered_columns_per_model['session'] = sess_cols
 
             out_sess = _odict_from_row(sess, sess_cols)
+
+            out_sess['__participant'] = []
+            for part in prefetch_participants[sess['id']]:
+                part_cols = columns_for_models['participant']
+
+                if 'participant' not in ordered_columns_per_model:
+                    ordered_columns_per_model['participant'] = part_cols
+
+                out_part = _odict_from_row(part, part_cols)
+                out_sess['__participant'].append(out_part)
 
             out_sess['__subsession'] = []
             for subsess in prefetch_subsess[sess['id']]:
@@ -494,6 +503,9 @@ class ExportAppExtension(ExportApp):
 
     def get(self, request, *args, **kwargs):
         app_name = kwargs['app_name']
+
+        if not request.GET.get('custom'):
+            return super().get(request, *args, **kwargs)
 
         if request.GET.get('json'):
             data = self.get_hierarchical_data_for_app(app_name)
