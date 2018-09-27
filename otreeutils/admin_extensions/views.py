@@ -1,11 +1,10 @@
-import os
 from collections import OrderedDict, defaultdict
 from importlib import import_module
 
 from django.http import JsonResponse
 
 from otree.views.admin import SessionData, pretty_name, pretty_round_name
-from otree.views.export import ExportApp, get_export_response
+from otree.views.export import ExportIndex, ExportApp, get_export_response
 from otree.export import sanitize_for_live_update, get_rows_for_live_update, _export_csv, _export_xlsx,\
     get_field_names_for_csv
 from otree.common_internal import get_models_module
@@ -260,6 +259,42 @@ class SessionDataExtension(SessionData):
 
     def get_template_names(self):
         return ['otreeutils/admin/SessionDataExtension.html']
+
+
+class ExportIndexExtension(ExportIndex):
+    template_name = 'otreeutils/admin/ExportIndexExtension.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        collected_apps = set()
+        app_info = []
+        for session in Session.objects.all():
+            for app_name in session.config['app_sequence']:
+                if app_name in collected_apps:
+                    continue
+
+                try:
+                    app_module = import_module(app_name)
+                except:
+                    app_module = None
+
+                if app_module and hasattr(app_module, 'urls') and hasattr(app_module.urls, 'urlpatterns'):
+                    for pttrn in app_module.urls.urlpatterns:
+                        if pttrn.name == 'ExportApp' and pttrn.lookup_str.startswith('otreeutils.admin_extensions'):
+                            uses_otreeutils_export = True
+                            break
+                    else:
+                        uses_otreeutils_export = False
+
+                app_info.append((app_name, uses_otreeutils_export))
+                collected_apps.add(app_name)
+
+        assert 'app_info' not in context
+        context['app_info'] = app_info
+
+        return context
+
 
 
 class ExportAppExtension(ExportApp):

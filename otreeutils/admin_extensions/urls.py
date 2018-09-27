@@ -16,6 +16,7 @@ from . import views
 patterns_conf = {
     'SessionData': (r"^SessionData/(?P<code>[a-z0-9]+)/$", views.SessionDataExtension),
     'ExportApp': (r"^ExportApp/(?P<app_name>[\w.]+)/$", views.ExportAppExtension),
+    'ExportIndex': (r"^export/$", views.ExportIndexExtension),
 }
 
 # exclude oTree's original patterns with the same names
