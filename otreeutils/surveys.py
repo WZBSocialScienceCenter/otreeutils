@@ -1,3 +1,10 @@
+"""
+Survey extensions that allows to define survey questions with a simple data structure and then automatically creates
+the necessary model fields and pages.
+
+Sept. 2018, Markus Konrad <markus.konrad@wzb.eu>
+"""
+
 from otree.api import BasePlayer
 
 from .pages import ExtendedPage

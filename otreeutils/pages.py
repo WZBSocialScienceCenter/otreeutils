@@ -1,5 +1,11 @@
+"""
+oTree page extensions.
+
+Sept. 2018, Markus Konrad <markus.konrad@wzb.eu>
+"""
+
+
 import settings
-from distutils.version import StrictVersion
 
 from django import forms
 from django.utils.translation import ugettext as _
@@ -9,9 +15,6 @@ from otree.api import Page, WaitPage
 
 APPS_DEBUG = getattr(settings, 'APPS_DEBUG', False)
 DEBUG_FOR_TPL = str(APPS_DEBUG).lower()
-
-otree_base_version = 1 if StrictVersion(otree.__version__) < StrictVersion('2.0') else 2
-extended_page_tpl = 'otreeutils/ExtendedPage%d.html' % otree_base_version
 
 
 class AllGroupsWaitPage(WaitPage):
@@ -32,7 +35,7 @@ class ExtendedPage(Page):
 
     def get_template_names(self):
         if self.__class__ is ExtendedPage:
-            return [extended_page_tpl]
+            return ['otreeutils/ExtendedPage.html']
         else:
             return super().get_template_names()
 
@@ -49,9 +52,6 @@ class ExtendedPage(Page):
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
             'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
-            'otree_base_version': otree_base_version,
-            'extended_page_tpl': extended_page_tpl,
-            'use_legacy_timer_code': StrictVersion(otree.__version__) < StrictVersion('1.4'),
         })
 
         return ctx
@@ -67,7 +67,7 @@ class UnderstandingQuestionsPage(ExtendedPage):
     default_hint_empty = 'Please fill out this answer.'
     questions = []  # define the understanding questions here. add dicts with the following keys: "question", "options", "correct"
     set_correct_answers = APPS_DEBUG   # useful for skipping pages during development
-    template_name = 'otreeutils/UnderstandingQuestionsPage.html'   # reset to None to use your own template the extends this one
+    template_name = 'otreeutils/UnderstandingQuestionsPage.html'   # reset to None to use your own template that extends this one
     form_field_n_wrong_attempts = None   # optionally record number of wrong attempts in this field (set form_model then, too!)
     form_fields = []   # no need to change this
     form_model = None

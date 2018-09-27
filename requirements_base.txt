@@ -1,2 +1,1 @@
-otree-core>=1.0.5
-Django==1.8.8 # for heroku, needs to be explicitly in requirements file
+otree>=2.0.0

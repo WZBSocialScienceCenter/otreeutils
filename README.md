@@ -1,18 +1,22 @@
 # otreeutils
 
-November 2016 – April 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+November 2016 – September 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
 ## A package with common oTree utilities
 
 This repository contains the package `otreeutils`. It features a set of common helper / utility functions and classes often needed when developing experiments with [oTree](http://www.otree.org/). So far, this covers the following use cases:
 
+* Extensions to oTree's admin interface for [using custom data models](https://datascience.blog.wzb.eu/2016/10/31/using-custom-data-models-in-otree/), which include:
+    * Live session data view shows data from custom models
+    * Export page allows download of complete data with data from custom models
+    * Export page allows download in nested JSON format
 * Displaying and validating understanding questions
 * Easier creation of surveys
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
 
-**Compatibility note:** This package has been tested with oTree v1.0 through v1.4 and is also compatible with oTree v2.0. 
+**Compatibility note:** This package is compatible with oTree v2.0. (It has been tested with oTree v2.1.15 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.0, which is the last version to support oTree 1.) 
 
-This package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
+The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
 via `pip install otreeutils`.
 
 ## Examples
@@ -22,14 +26,89 @@ The repository contains two example apps which show the respective features and 
 * `otreeutils_example1` -- Understanding questions and timeout warnings
 * `otreeutils_example2` -- Surveys
 
+**An example showing custom data models and the admin extensions from otreeutils is provided in the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market).**
+
+## Limitations
+
+The admin interface extensions have still some limitations:
+
+* The live data view by default only supports custom models linked to the *Player* model. You will need to override the `custom_rows_...` methods in `admin_extensions.views.SessionDataExtension` to adapt to your models if they link to other oTree models.
+* Data export with all data from custom models is only possible with per app download option, not with the "all apps" option.
+
 ## Installation and setup
 
-In order to use *otreeutils* in your experiment implementation, you only need to do two things:
+In order to use *otreeutils* in your experiment implementation, you only need to the following things:
 
 1. Either install the package from [PyPI](https://pypi.python.org/pypi/otreeutils) via
    *pip* (`pip install otreeutils`) or download/clone this github repository and copy
    the `otreeutils` folder to your oTree experiment directory
 2. Edit your `settings.py` so that you add "otreeutils" to your `INSTALLED_APPS` list
+
+### Custom data models and admin extensions
+
+If you implement custom data models and want to use otreeutils' admin extensions you additionally need to follow these steps:
+
+#### 1. Add configuration class to custom models
+
+For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
+
+```python
+class FruitOffer(Model):
+    amount = models.IntegerField(label='Amount', min=0, initial=0)
+
+    # ... more fields here ...
+
+    seller = ForeignKey(Player)
+
+
+    class CustomModelConf:
+        """
+        Configuration for otreeutils admin extensions.
+        """
+        data_view = {    # define this attribute if you want to include this model in the live data view
+            'exclude_fields': ['seller']
+        }
+        export_data = {  # define this attribute if you want to include this model in the data export
+            'exclude_fields': ['seller_id'],
+            'link_with': 'seller'
+        }
+
+``` 
+
+#### 2. Add a custom urls module
+
+In your experiment app, add a file `urls.py` and simply include the custom URL patters from otreeutils as follows:
+
+```python
+from otreeutils.admin_extensions.urls import urlpatterns
+
+# add more custom URL rules here if necessary
+# ...
+```
+
+#### 3. Add a custom routing module
+
+In your experiment app, add a file `routing.py` and simply include the custom channel routing patters from otreeutils as follows:
+
+```python
+from otreeutils.admin_extensions.routing import channel_routing
+
+# add more custom channel routing rules here if necessary
+# ...
+```
+
+#### 4. Update `settings.py` to load the custom URLs and channel routes
+
+Add these lines to your `settings.py`:
+
+```python
+ROOT_URLCONF = 'market.urls'
+CHANNEL_ROUTING = 'market.routing.channel_routing'
+```
+
+That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
+
+See also the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market) that uses custom data models.
 
 ## API overview
 

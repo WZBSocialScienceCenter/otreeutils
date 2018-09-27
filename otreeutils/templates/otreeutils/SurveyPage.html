@@ -1,4 +1,4 @@
-{% extends extended_page_tpl %}
+{% extends 'otreeutils/ExtendedPage.html' %}
 
 {% load staticfiles otree_tags %}
 
@@ -10,10 +10,6 @@
 <script src="{% static 'otreeutils/understanding.js' %}"></script>
 {% endblock %}
 
-
-{% block title %}
-    {{ page_title }}
-{% endblock %}
 
 {% block content %}
 
