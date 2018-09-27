@@ -1,3 +1,10 @@
+"""
+Common (internal) utility functions.
+
+Sept. 2018, Markus Konrad <markus.konrad@wzb.eu>
+"""
+
+
 from collections import OrderedDict
 
 

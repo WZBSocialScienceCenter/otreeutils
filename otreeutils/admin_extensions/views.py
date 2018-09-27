@@ -1,3 +1,12 @@
+"""
+Custom admin views.
+
+Override existing oTree admin views for custom data live view and custom data export.
+
+Sept. 2018, Markus Konrad <markus.konrad@wzb.eu>
+"""
+
+
 from collections import OrderedDict, defaultdict
 from importlib import import_module
 
@@ -16,13 +25,22 @@ from otreeutils.common import hierarchical_data_columnwise, columnwise_data_as_r
 
 
 def get_custom_models_conf(models_module, for_action):
+    """
+    Obtain the custom models defined in the models.py module `models_module` of an app for a certain action (`data_view`
+    or `export_data`).
+
+    These models must have a subclass `CustomModelConf` with the respective configuration attributes `data_view`
+    or `export_data`.
+
+    Returns a dictionary with `model name` -> `model config dict`.
+    """
     assert for_action in ('data_view', 'export_data')
 
     custom_models_conf = {}
     for attr in dir(models_module):
         val = getattr(models_module, attr)
         try:
-            if issubclass(val, Model):
+            if issubclass(val, Model):   # must be a django model
                 metaclass = getattr(val, 'CustomModelConf', None)
                 if metaclass and hasattr(metaclass, for_action):
                     custom_models_conf[attr] = {
@@ -36,6 +54,11 @@ def get_custom_models_conf(models_module, for_action):
 
 
 def get_field_names_for_custom_model(model, conf, use_attname=False):
+    """
+    Obtain fields for a custom model `model`, depending on its configuration `conf`.
+    If `use_attname` is True, use the `attname` property of the field, else the `name` property ("attname" has a "_id"
+    suffix for ForeignKeys).
+    """
     if 'fields' in conf:
         fields = conf['fields']
     else:
@@ -47,6 +70,7 @@ def get_field_names_for_custom_model(model, conf, use_attname=False):
 
 
 def _rows_per_key_from_queryset(qs, key):
+    """Make a dict with `row[key] -> [rows with same key]` mapping (rows is a list)."""
     res = defaultdict(list)
 
     for row in qs.values():
@@ -60,16 +84,30 @@ def _set_of_ids_from_rows_per_key(rows, idfield):
 
 
 def _odict_from_row(row, columns):
+    """Create an OrderedDict from a dict `row` using the columns in the order of `columns`."""
     return OrderedDict((c, sanitize_for_csv(row[c])) for c in columns)
 
 
 class SessionDataExtension(SessionData):
+    """
+    Extension to oTree's live session data viewer.
+    """
+
     @staticmethod
     def custom_rows_queryset(models_module, custom_models_names,  **kwargs):
+        """
+        Queryset to fetch rows from custom models `custom_models_names` in module `models_module`.
+
+        Currently, this only supports custom models linked to the Player model, but overriding this method can add
+        support to other linked models.
+        """
+
         base_class = 'Player'
         base_key = 'id_in_group'
         base_model = getattr(models_module, base_class)
         prefetch_related_args = [m.lower() + '_set' for m in custom_models_names]
+
+        # prefetches custom models linked to base_class
 
         return (base_model.objects\
             .filter(subsession_id=kwargs['subsession'].pk)\
@@ -79,19 +117,28 @@ class SessionDataExtension(SessionData):
 
     @staticmethod
     def custom_rows_builder(qs, columns_for_custom_models, custom_models_baseclass, custom_models_basekey):
+        """
+        Build rows for data from queryset `qs` with custom models using columns `columns_for_custom_models`.
+
+        Returns a nested dict with:
+        base class key (e.g. player ID) -> custom model name -> list of data rows for that model
+        """
         rows = defaultdict(lambda: defaultdict(list))
 
-        for base_instance in qs:
+        for base_instance in qs:  # base_instance is Player if default `custom_rows_queryset()` is used
             key = str(getattr(base_instance, custom_models_basekey))
 
+            # for each custom model and its columns...
             for model_name_lwr, colnames in columns_for_custom_models.items():
+                # get the respective data linked to the current base_instance for this custom model
                 model_results_set = getattr(base_instance, model_name_lwr + '_set').all()
 
+                # add the custom model data
                 for res in model_results_set:
                     row = []
                     for colname in colnames:
                         attr = getattr(res, colname, '')
-                        if isinstance(attr, Model):
+                        if isinstance(attr, Model):  # use ID if we encounter a foreign key
                             attr = attr.pk
 
                         row.append(sanitize_for_live_update(attr))
@@ -102,6 +149,10 @@ class SessionDataExtension(SessionData):
 
     @staticmethod
     def custom_columns_builder(custom_model_conf):
+        """
+        Obtain columns (fields) for each custom model in `custom_model_conf`.
+        """
+
         columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['data_view'])
                               for name, conf in custom_model_conf.items()}
 
@@ -110,6 +161,9 @@ class SessionDataExtension(SessionData):
     @staticmethod
     def combine_rows(subsession_rows, custom_rows, columns_for_models, columns_for_custom_models,
                      custom_models_names_lwr, custom_models_baseclass, custom_models_basekey):
+        """
+        Combine oTree subsession rows `subsession_rows` with rows from the custom data models `custom_rows`.
+        """
         combined_rows = []
         otree_modelnames = ['Player', 'Group', 'Subsession']
         otree_modelnames_lwr = [n.lower() for n in otree_modelnames]
@@ -138,17 +192,22 @@ class SessionDataExtension(SessionData):
             combrow = []  # combined row
             n_fields_from_otree_models = 0
             for model_name in ['player'] + custom_models_names_lwr + ['group', 'subsession']:
-                if model_name in otree_modelnames_lwr:
+                if model_name in otree_modelnames_lwr:  # standard oTree model
                     n_fields = len(columns_for_models[model_name])
                     field_idx_start = n_fields_from_otree_models
                     field_idx_end = n_fields_from_otree_models + n_fields
+
+                    # insert values at the correct indices
                     combrow.extend(row[field_idx_start:field_idx_end])
                     n_fields_from_otree_models += n_fields
-                else:
+                else:  # custom model
                     n_fields = len(columns_for_custom_models[model_name])
+
+                    # get all fields and their values of this model
                     custom_vals = custom_rows[row_key][model_name]
                     if custom_vals:
                         assert all(n == n_fields for n in map(len, custom_vals))
+                        # for 1:m fields, add several custom values divided by a horizontal line <hr>
                         for col_values in zip(*custom_rows[row_key][model_name]):
                             col_values = [v if v else '&nbsp;' for v in col_values]
                             combrow.append('<hr>'.join(col_values))
@@ -159,11 +218,16 @@ class SessionDataExtension(SessionData):
 
         n_cols_otree_models = sum(map(len, columns_for_models.values()))
         n_cols_custom_models = sum(map(len, columns_for_custom_models.values()))
-        assert all(n == n_cols_otree_models + n_cols_custom_models for n in map(len, combined_rows))
+        assert all(n == n_cols_otree_models + n_cols_custom_models for n in map(len, combined_rows)),\
+               'number of fields for at least 1 row is not the sum of oTree model fields and custom model fields'
 
         return combined_rows
 
     def get_context_data(self, **kwargs):
+        """
+        Main overridden function: Generate the data to be displayed in the live data view.
+        """
+
         def columns_for_any_modelname(modelname):
             cols = columns_for_custom_models.get(modelname, columns_for_models.get(modelname, []))
             if not cols:
@@ -192,15 +256,21 @@ class SessionDataExtension(SessionData):
             # created.
             columns_for_models, subsession_rows = get_rows_for_live_update(subsession)
 
+            # get the columns for the custom models
             columns_for_custom_models = self.custom_columns_builder(custom_models_conf)
+
+            # get the queryset for the custom models
             custom_models_qs, custom_models_baseclass, custom_models_basekey = \
                 self.custom_rows_queryset(models_module, custom_models_names, subsession=subsession)
+
+            # build the rows for the custom models
             custom_rows = self.custom_rows_builder(custom_models_qs, columns_for_custom_models,
                                                    custom_models_baseclass, custom_models_basekey)
             # pprint(subsession_rows)
             # pprint(columns_for_custom_models)
             # pprint(custom_rows)
 
+            # combine those rows with the subsession rows
             combined_rows = self.combine_rows(subsession_rows, custom_rows, columns_for_models,
                                               columns_for_custom_models, custom_models_names_lwr,
                                               custom_models_baseclass, custom_models_basekey)
@@ -258,13 +328,24 @@ class SessionDataExtension(SessionData):
         return context
 
     def get_template_names(self):
-        return ['otreeutils/admin/SessionDataExtension.html']
+        return ['otreeutils/admin/SessionDataExtension.html']    # use own template
 
 
 class ExportIndexExtension(ExportIndex):
-    template_name = 'otreeutils/admin/ExportIndexExtension.html'
+    """
+    Extension class for data export index page.
+    """
+
+    template_name = 'otreeutils/admin/ExportIndexExtension.html'    # use own template
 
     def get_context_data(self, **kwargs):
+        """
+        Generate data for the template.
+
+        Override oTree's get_context_data() to add links to custom data export.
+        """
+
+        # call super class method
         context = super().get_context_data(**kwargs)
 
         collected_apps = set()
@@ -274,22 +355,23 @@ class ExportIndexExtension(ExportIndex):
                 if app_name in collected_apps:
                     continue
 
+                # try to find out if an app uses otreeutils' admin_extensions
                 try:
                     app_module = import_module(app_name)
                 except:
                     app_module = None
 
+                uses_otreeutils_export = False
                 if app_module and hasattr(app_module, 'urls') and hasattr(app_module.urls, 'urlpatterns'):
                     for pttrn in app_module.urls.urlpatterns:
                         if pttrn.name == 'ExportApp' and pttrn.lookup_str.startswith('otreeutils.admin_extensions'):
                             uses_otreeutils_export = True
                             break
-                    else:
-                        uses_otreeutils_export = False
 
                 app_info.append((app_name, uses_otreeutils_export))
                 collected_apps.add(app_name)
 
+        # add app_info for custom template
         assert 'app_info' not in context
         context['app_info'] = app_info
 
@@ -297,8 +379,15 @@ class ExportIndexExtension(ExportIndex):
 
 
 class ExportAppExtension(ExportApp):
+    """
+    Extension to oTree's data export to allow for full data export with custom data models.
+    """
+
     @staticmethod
     def custom_columns_builder(custom_model_conf):
+        """
+        Obtain columns (fields) for each custom model in `custom_model_conf`.
+        """
         columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['export_data'],
                                                                              use_attname=True)
                               for name, conf in custom_model_conf.items()}
@@ -307,6 +396,11 @@ class ExportAppExtension(ExportApp):
 
     @classmethod
     def get_data_rows_for_app(cls, app_name):
+        """
+        Generate data rows for app `app_name`, also adding rows of custom data models.
+        """
+
+        # get the hierarchically structured data and flattened field names
         data, colnames = cls.get_hierarchical_data_for_app(app_name, return_columns=True)
 
         # turn hierarchical data into column-wise data
@@ -351,31 +445,50 @@ class ExportAppExtension(ExportApp):
 
     @classmethod
     def get_hierarchical_data_for_app(cls, app_name, return_columns=False):
+        """
+        Generate hierarchical structured data for app `app_name`, optionally returning flattened field names.
+        """
+
         models_module = get_models_module(app_name)
+
+        # get the standard models
         Player = models_module.Player
         Group = models_module.Group
         Subsession = models_module.Subsession
 
+        # get the custom models configuration
         custom_models_conf = get_custom_models_conf(models_module, 'export_data')
 
+        # build standard models' columns
         columns_for_models = {m.__name__.lower(): get_field_names_for_csv(m)
                               for m in [Player, Group, Subsession, Participant, Session]}
 
+        # build custom models' columns
         columns_for_custom_models = cls.custom_columns_builder(custom_models_conf)
 
-        custom_models_links = defaultdict(list)
-        std_models_select_related = defaultdict(list)
+        # identify the links between custom models and standard models
+        custom_models_links = defaultdict(list)         # standard model name -> list of tuples
+                                                        #                        (custom model class, link field name)
+        std_models_select_related = defaultdict(list)   # standard model name -> list of lowercase custom model names
         for model_name, conf in custom_models_conf.items():
             model = conf['class']
+
+            # get the name and field instance of the link
             link_field_name = conf['export_data']['link_with']
             link_field = getattr(model, link_field_name)
+
+            # get the related standard oTree model
             rel_model = link_field.field.related_model
+
+            # save to dicts
             custom_models_links[rel_model.__name__].append((conf['class'], link_field_name + '_id'))
             std_models_select_related[rel_model.__name__.lower()].append(model_name.lower())
 
+        # create lists of IDs that will be used for the export
         participant_ids = Player.objects.values_list('participant_id', flat=True)
         session_ids = Subsession.objects.values_list('session_id', flat=True)
 
+        # create standard model querysets
         qs_player = Player.objects.filter(session_id__in=session_ids)\
             .order_by('id')\
             .select_related(*std_models_select_related.get('player', [])).values()
@@ -384,11 +497,14 @@ class ExportAppExtension(ExportApp):
         qs_subsession = Subsession.objects.filter(session_id__in=session_ids)\
             .select_related(*std_models_select_related.get('subsession', []))
 
+        # create prefetch dictionaries from querysets that map IDs to subsets of the data
+
         prefetch_participants = defaultdict(list)        # session ID -> participant rows
         for row in Participant.objects.filter(id__in=participant_ids).values():
             prefetch_participants[row['session_id']].append(row)
 
-        prefetch_filter_ids_for_custom_models = {}
+        prefetch_filter_ids_for_custom_models = {}   # stores IDs per standard oTree model to be used for
+                                                     # custom data prefetching
 
         # session ID -> subsession rows for this session
         prefetch_subsess = _rows_per_key_from_queryset(qs_subsession, 'session_id')
@@ -402,19 +518,28 @@ class ExportAppExtension(ExportApp):
         prefetch_player = _rows_per_key_from_queryset(qs_player, 'group_id')
         prefetch_filter_ids_for_custom_models['player'] = _set_of_ids_from_rows_per_key(prefetch_player, 'id')
 
-        prefetch_custom = defaultdict(dict)
-        for otree_model_name, custom_modellist_for_otree_model in custom_models_links.items():
+        # prefetch dict for custom data models
+        prefetch_custom = defaultdict(dict)   # standard oTree model name -> custom model name -> data rows
+        for otree_model_name, custom_modellist_for_otree_model in custom_models_links.items():  # per oTree std. model
             otree_model_name_lwr = otree_model_name.lower()
+
+            # IDs that occur for that model
             filter_ids = prefetch_filter_ids_for_custom_models[otree_model_name_lwr]
 
+            # iterate per custom model
             for model, link_field_name in custom_modellist_for_otree_model:
+                # prefetch custom model objects that are linked to these oTree std. model IDs
                 filter_kwargs = {link_field_name + '__in': filter_ids}
                 custom_qs = model.objects.filter(**filter_kwargs).values()
+
+                # store to the dict
                 m = model.__name__.lower()
                 prefetch_custom[otree_model_name_lwr][m] = _rows_per_key_from_queryset(custom_qs, link_field_name)
 
+        # build the final nested data structure
         output_nested = []
         ordered_columns_per_model = OrderedDict()
+        # 1. each session
         for sess in Session.objects.filter(id__in=session_ids).values():
             sess_cols = columns_for_models['session']
             if 'session' not in ordered_columns_per_model:
@@ -422,6 +547,7 @@ class ExportAppExtension(ExportApp):
 
             out_sess = _odict_from_row(sess, sess_cols)
 
+            # 1.1. each participant in the session
             out_sess['__participant'] = []
             for part in prefetch_participants[sess['id']]:
                 part_cols = columns_for_models['participant']
@@ -432,6 +558,7 @@ class ExportAppExtension(ExportApp):
                 out_part = _odict_from_row(part, part_cols)
                 out_sess['__participant'].append(out_part)
 
+            # 1.2. each subsession in the session
             out_sess['__subsession'] = []
             for subsess in prefetch_subsess[sess['id']]:
                 subsess_cols = columns_for_models['subsession']
@@ -440,6 +567,7 @@ class ExportAppExtension(ExportApp):
 
                 out_subsess = _odict_from_row(subsess, subsess_cols)
 
+                # 1.2.1. each possible custom models connected to this subsession
                 subsess_custom_models_rows = prefetch_custom.get('subsession', {})
                 for subsess_cmodel_name, subsess_cmodel_rows in subsess_custom_models_rows.items():
                     cmodel_cols = columns_for_custom_models[subsess_cmodel_name]
@@ -448,6 +576,8 @@ class ExportAppExtension(ExportApp):
 
                     out_subsess['__' + subsess_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                                for cmodel_row in subsess_cmodel_rows[subsess['id']]]
+
+                # 1.2.2. each group in this subsession
                 out_subsess['__group'] = []
                 for grp in prefetch_group[subsess['id']]:
                     grp_cols = columns_for_models['group']
@@ -456,6 +586,7 @@ class ExportAppExtension(ExportApp):
 
                     out_grp = _odict_from_row(grp, grp_cols)
 
+                    # 1.2.2.1. each possible custom models connected to this group
                     grp_custom_models_rows = prefetch_custom.get('group', {})
                     for grp_cmodel_name, grp_cmodel_rows in grp_custom_models_rows.items():
                         cmodel_cols = columns_for_custom_models[grp_cmodel_name]
@@ -464,6 +595,8 @@ class ExportAppExtension(ExportApp):
 
                         out_grp['__' + grp_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                            for cmodel_row in grp_cmodel_rows[grp['id']]]
+
+                    # 1.2.2.2. each player in this group
                     out_grp['__player'] = []
                     for player in prefetch_player[grp['id']]:
                         # because player.payoff is a property
@@ -475,6 +608,7 @@ class ExportAppExtension(ExportApp):
 
                         out_player = _odict_from_row(player, player_cols)
 
+                        # 1.2.2.2.1. each possible custom models connected to this player
                         player_custom_models_rows = prefetch_custom.get('player', {})
                         for player_cmodel_name, player_cmodel_rows in player_custom_models_rows.items():
                             cmodel_cols = columns_for_custom_models[player_cmodel_name]
@@ -492,6 +626,7 @@ class ExportAppExtension(ExportApp):
 
             output_nested.append(out_sess)
 
+        # generate column names
         columns_flat = []
         for model_name, model_cols in ordered_columns_per_model.items():
             columns_flat.extend(['.'.join((model_name, c)) for c in model_cols])
@@ -502,9 +637,15 @@ class ExportAppExtension(ExportApp):
             return output_nested
 
     def get(self, request, *args, **kwargs):
+        """
+        Generate response for data download.
+
+        Overrides default oTree method allowing custom data models export and additionally adds JSON export.
+        """
+
         app_name = kwargs['app_name']
 
-        if not request.GET.get('custom'):
+        if not request.GET.get('custom'):   # if "custom" is not requested, use the default oTree method
             return super().get(request, *args, **kwargs)
 
         if request.GET.get('json'):

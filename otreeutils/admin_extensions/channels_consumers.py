@@ -1,3 +1,12 @@
+"""
+Custom channels consumer classes.
+
+Overrides existing otree consumers.
+
+Sept. 2018, Markus Konrad <markus.konrad@wzb.eu>
+"""
+
+
 import io
 import datetime
 import base64
@@ -8,14 +17,23 @@ from .views import ExportAppExtension, _export_xlsx, _export_csv
 
 
 class ExportDataChannelsExtension(ExportData):
+    """
+    Override oTree's ExportData channels consumer class to implement custom data downloads.
+    """
+
     def post_receive(self, content: dict):
+        """
+        Overrides oTree's default function. Mainly uses the same code with some exceptions to get the data from
+        admin_extensions.views.ExportAppExtension.
+        """
+
         """
         if an app name is given, export the app.
         otherwise, export all the data (wide).
         don't need time_spent or chat yet, they are quick enough
         """
 
-        if not content.get('custom'):
+        if not content.get('custom'):  # use oTree standard method
             return super().post_receive(content)
 
         # authenticate
@@ -41,6 +59,7 @@ class ExportDataChannelsExtension(ExportData):
         iso_date = datetime.date.today().isoformat()
         with IOClass() as fp:
             if app_name:
+                # custom data export for this app
                 rows = ExportAppExtension.get_data_rows_for_app(app_name)
 
                 if file_extension == 'xlsx':

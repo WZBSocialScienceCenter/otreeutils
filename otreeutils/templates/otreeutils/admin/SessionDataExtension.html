@@ -1,3 +1,8 @@
+{% comment %}
+Overrides default oTree live data template and only makes a minor change in the JavaScript to allow for displaying
+"<hr>" lines when a data update is received.
+{% endcomment %}
+
 {% extends "otree/admin/Session.html" %}
 
 {% block internal_scripts %}
@@ -57,7 +62,7 @@ function updateTableExtended($table, new_json) {
                 var cell_to_update = $table.find(
                     "tbody tr:eq(" + i + ") td[data-field='" + header_name + "']" );
                 var new_value = delta[i][header_name][1];
-                cell_to_update.html(new_value);
+                cell_to_update.html(new_value);     // otreeutils CHANGE: use .html instead .text to render HTML tags
 
                 // so that we get tooltips if it truncates
                 cell_to_update.prop('title', new_value);
