@@ -14,7 +14,7 @@ This repository contains the package `otreeutils`. It features a set of common h
 * Easier creation of surveys
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
 
-**Compatibility note:** This package is compatible with oTree v2.0. (It has been tested with oTree v2.1.15 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.1, which is the last version to support oTree 1.) 
+**Compatibility note:** This package is compatible with oTree v2.x. (It has been tested with oTree v2.1.15 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.1, which is the last version to support oTree 1.) 
 
 The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
 via `pip install otreeutils`.
