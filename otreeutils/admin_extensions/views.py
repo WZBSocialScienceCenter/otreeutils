@@ -14,14 +14,99 @@ from django.http import JsonResponse
 
 from otree.views.admin import SessionData, pretty_name, pretty_round_name
 from otree.views.export import ExportIndex, ExportApp, get_export_response
-from otree.export import sanitize_for_live_update, get_rows_for_live_update, _export_csv, _export_xlsx,\
+from otree.export import sanitize_for_live_update, get_field_names_for_live_update, get_rows_for_live_update, _export_csv, _export_xlsx,\
     get_field_names_for_csv, sanitize_for_csv
 from otree.common_internal import get_models_module
 from otree.db.models import Model
 from otree.models.participant import Participant
 from otree.models.session import Session
+import pandas as pd
 
 from otreeutils.common import hierarchical_data_columnwise, columnwise_data_as_rows
+
+
+def get_links_between_std_and_custom_models(custom_models_conf):
+    """
+    Identify the links between custom models and standard models using custom models configuration `custom_models_conf`.
+    Return as dict with lists:
+        standard model -> list of tuples (custom model class, link field name)
+    """
+
+    std_to_custom = defaultdict(list)
+
+    for model_name, conf in custom_models_conf.items():
+        model = conf['class']
+
+        # get the name and field instance of the link
+        link_field_name = conf['export_data']['link_with']
+        link_field = getattr(model, link_field_name)
+
+        # get the related standard oTree model
+        rel_model = link_field.field.related_model
+
+        # save to dicts
+        std_to_custom[rel_model].append((conf['class'], link_field_name + '_id'))
+
+    return std_to_custom
+
+
+def get_modelnames_from_links_between_std_and_custom_models_structure(std_to_custom):
+    """
+    Get model names from output of `get_links_between_std_and_custom_models()`
+
+    Return as dict with lists: standard model name -> list of lowercase custom model names
+    """
+
+    modelnames = defaultdict(list)
+
+    for std_model_name, (custom_model_class, _) in std_to_custom.items():
+        modelnames[std_model_name.__name__.lower()].append(custom_model_class.__name__.lower())
+
+    return modelnames
+
+
+def get_dataframe_from_linked_models(std_models_querysets, model_links, std_models_colnames, custom_models_colnames):
+    df = None
+
+    for smodel, smodel_qs, (smodel_link_left, smodel_link_right) in std_models_querysets:
+        smodel_name = smodel.__name__
+        smodel_name_lwr = smodel_name.lower()
+        smodel_colnames = std_models_colnames[smodel_name_lwr]
+
+        if 'id' not in smodel_colnames:
+            smodel_colnames += ['id']
+
+        remove_right_link_col = False
+        if smodel_link_right and smodel_link_right not in smodel_colnames:
+            remove_right_link_col = True
+            smodel_colnames += [smodel_link_right[smodel_link_right.rindex('.')+1:]]
+
+        if smodel_name == 'Player':
+            smodel_colnames[smodel_colnames.index('payoff')] = '_payoff'
+            smodel_colnames = [c for c in smodel_colnames if c != 'role']
+
+        df_smodel = pd.DataFrame(list(smodel_qs.values()))[smodel_colnames]
+
+        if smodel_name == 'Player':
+            df_smodel.rename(columns={'_payoff': 'payoff'}, inplace=True)
+            df_smodel['role'] = [p.role() for p in smodel_qs]
+
+        renamings = dict((c, smodel_name_lwr + '.' + c) for c in df_smodel.columns)
+        df_smodel.rename(columns=renamings, inplace=True)
+
+        if df is None:
+            assert smodel_link_left is None and smodel_link_right is None
+            df = df_smodel
+        else:
+            df = pd.merge(df, df_smodel, how='left', left_on=smodel_link_left, right_on=smodel_link_right)
+
+        if smodel in model_links:
+            cmodel, cmodel_link_field_name = model_links[smodel]
+
+        if remove_right_link_col:
+            del df[smodel_link_right]
+
+    return df
 
 
 def get_custom_models_conf(models_module, for_action):
@@ -224,6 +309,41 @@ class SessionDataExtension(SessionData):
         return combined_rows
 
     def get_context_data(self, **kwargs):
+        session = self.session
+
+        models_module = import_module(self.session.config['name'] + '.models')
+        Subsession = models_module.Subsession
+        Group = models_module.Group
+        Player = models_module.Player
+
+        custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
+
+        std_models_colnames = {m.__name__.lower(): get_field_names_for_live_update(m)
+                               for m in (Subsession, Group, Player)}
+        custom_models_colnames = self.custom_columns_builder(custom_models_conf)
+
+        filter_in_sess = dict(session_id__in=[session.pk])
+
+        std_models_querysets = (
+            (Subsession, Subsession.objects.filter(**filter_in_sess), (None, None)),
+            (Group, Group.objects.filter(**filter_in_sess), ('subsession.id', 'group.subsession_id')),
+            (Player, Player.objects.filter(**filter_in_sess), ('group.id', 'player.group_id')),
+        )
+
+        df = get_dataframe_from_linked_models(std_models_querysets, {}, std_models_colnames, custom_models_colnames)
+
+        self.context_json = []
+        # TODO
+
+        context = super(SessionData, self).get_context_data(**kwargs)   # calls `get_context_data()` from
+                                                                        # AdminSessionPageMixin
+        context.update({})  # TODO
+
+        return context
+
+
+
+    def get_context_data_old(self, **kwargs):
         """
         Main overridden function: Generate the data to be displayed in the live data view.
         """
