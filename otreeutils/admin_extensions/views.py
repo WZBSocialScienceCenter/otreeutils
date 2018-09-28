@@ -25,7 +25,7 @@ import pandas as pd
 from otreeutils.common import hierarchical_data_columnwise, columnwise_data_as_rows
 
 
-def get_links_between_std_and_custom_models(custom_models_conf):
+def get_links_between_std_and_custom_models(custom_models_conf, for_action):
     """
     Identify the links between custom models and standard models using custom models configuration `custom_models_conf`.
     Return as dict with lists:
@@ -38,7 +38,7 @@ def get_links_between_std_and_custom_models(custom_models_conf):
         model = conf['class']
 
         # get the name and field instance of the link
-        link_field_name = conf['export_data']['link_with']
+        link_field_name = conf[for_action]['link_with']
         link_field = getattr(model, link_field_name)
 
         # get the related standard oTree model
@@ -65,7 +65,8 @@ def get_modelnames_from_links_between_std_and_custom_models_structure(std_to_cus
     return modelnames
 
 
-def get_dataframe_from_linked_models(std_models_querysets, model_links, std_models_colnames, custom_models_colnames):
+def get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
+                                     std_models_colnames, custom_models_colnames):
     df = None
 
     for smodel, smodel_qs, (smodel_link_left, smodel_link_right) in std_models_querysets:
@@ -85,7 +86,10 @@ def get_dataframe_from_linked_models(std_models_querysets, model_links, std_mode
             smodel_colnames[smodel_colnames.index('payoff')] = '_payoff'
             smodel_colnames = [c for c in smodel_colnames if c != 'role']
 
-        df_smodel = pd.DataFrame(list(smodel_qs.values()))[smodel_colnames]
+        if not smodel_qs.exists():
+            df_smodel = pd.DataFrame(OrderedDict((c, []) for c in smodel_colnames))
+        else:
+            df_smodel = pd.DataFrame(list(smodel_qs.values()))[smodel_colnames]
 
         if smodel_name == 'Player':
             df_smodel.rename(columns={'_payoff': 'payoff'}, inplace=True)
@@ -100,8 +104,39 @@ def get_dataframe_from_linked_models(std_models_querysets, model_links, std_mode
         else:
             df = pd.merge(df, df_smodel, how='left', left_on=smodel_link_left, right_on=smodel_link_right)
 
-        if smodel in model_links:
-            cmodel, cmodel_link_field_name = model_links[smodel]
+        if smodel in links_to_custom_models:
+            for cmodel, cmodel_link_field_name in links_to_custom_models[smodel]:
+                cmodel_name = cmodel.__name__
+                cmodel_name_lwr = cmodel_name.lower()
+
+                #cmodel_link_field = getattr(cmodel, cmodel_link_field_name)
+                #link_set_name = cmodel_link_field_name + '_set'
+
+                smodel_ids = df_smodel[smodel_name_lwr + '.id'].unique()
+                cmodel_qs = cmodel.objects.filter(**{cmodel_link_field_name + '__in': smodel_ids})
+                cmodel_colnames = custom_models_colnames[cmodel_name_lwr]
+
+                remove_cmodel_link_field_name = False
+                if cmodel_link_field_name not in cmodel_colnames:
+                    cmodel_colnames += [cmodel_link_field_name]
+                    remove_cmodel_link_field_name = True
+
+                if not cmodel_qs.exists():
+                    df_cmodel = pd.DataFrame(OrderedDict((c, []) for c in cmodel_colnames))
+                else:
+                    df_cmodel = pd.DataFrame(list(cmodel_qs.values()))[cmodel_colnames]
+
+                renamings = dict((c, cmodel_name_lwr + '.' + c) for c in df_cmodel.columns)
+                df_cmodel.rename(columns=renamings, inplace=True)
+
+                cmodel_link_field_name = cmodel_name_lwr + '.' + cmodel_link_field_name
+
+                df = pd.merge(df, df_cmodel, how='left',
+                              left_on=smodel_name_lwr + '.id',
+                              right_on=cmodel_link_field_name)
+
+                if remove_cmodel_link_field_name:
+                    del df[cmodel_link_field_name]
 
         if remove_right_link_col:
             del df[smodel_link_right]
@@ -318,6 +353,8 @@ class SessionDataExtension(SessionData):
 
         custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
 
+        links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
+
         std_models_colnames = {m.__name__.lower(): get_field_names_for_live_update(m)
                                for m in (Subsession, Group, Player)}
         custom_models_colnames = self.custom_columns_builder(custom_models_conf)
@@ -330,7 +367,8 @@ class SessionDataExtension(SessionData):
             (Player, Player.objects.filter(**filter_in_sess), ('group.id', 'player.group_id')),
         )
 
-        df = get_dataframe_from_linked_models(std_models_querysets, {}, std_models_colnames, custom_models_colnames)
+        df = get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
+                                              std_models_colnames, custom_models_colnames)
 
         self.context_json = []
         # TODO
