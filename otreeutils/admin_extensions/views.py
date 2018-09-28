@@ -25,6 +25,20 @@ import pandas as pd
 from otreeutils.common import hierarchical_data_columnwise, columnwise_data_as_rows
 
 
+def sanitize_pdvalue_for_live_update(x):
+    if pd.isna(x):
+        return ''
+    else:
+        return sanitize_for_live_update(x)
+
+
+def sanitize_pdvalue_for_csv(x):
+    if pd.isna(x):
+        return ''
+    else:
+        return sanitize_for_csv(x)
+
+
 def get_links_between_std_and_custom_models(custom_models_conf, for_action):
     """
     Identify the links between custom models and standard models using custom models configuration `custom_models_conf`.
@@ -346,36 +360,94 @@ class SessionDataExtension(SessionData):
     def get_context_data(self, **kwargs):
         session = self.session
 
-        models_module = import_module(self.session.config['name'] + '.models')
-        Subsession = models_module.Subsession
-        Group = models_module.Group
-        Player = models_module.Player
+        rows = []
 
-        custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
+        round_headers = []
+        model_headers = []
+        field_names = []
+        field_names_json = []  # field names for JSON response
 
-        links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
+        for subsession in session.get_subsessions():
+            models_module = import_module(subsession.__module__)
 
-        std_models_colnames = {m.__name__.lower(): get_field_names_for_live_update(m)
-                               for m in (Subsession, Group, Player)}
-        custom_models_colnames = self.custom_columns_builder(custom_models_conf)
+            Subsession = models_module.Subsession
+            Group = models_module.Group
+            Player = models_module.Player
 
-        filter_in_sess = dict(session_id__in=[session.pk])
+            custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
+            custom_models_names = list(custom_models_conf.keys())
+            custom_models_names_lwr = [n.lower() for n in custom_models_names]
 
-        std_models_querysets = (
-            (Subsession, Subsession.objects.filter(**filter_in_sess), (None, None)),
-            (Group, Group.objects.filter(**filter_in_sess), ('subsession.id', 'group.subsession_id')),
-            (Player, Player.objects.filter(**filter_in_sess), ('group.id', 'player.group_id')),
-        )
+            links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
 
-        df = get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
-                                              std_models_colnames, custom_models_colnames)
+            std_models_colnames = {m.__name__.lower(): get_field_names_for_live_update(m)
+                                   for m in (Subsession, Group, Player)}
+            custom_models_colnames = self.custom_columns_builder(custom_models_conf)
+
+            filter_in_sess = dict(session_id__in=[session.pk])
+
+            std_models_querysets = (
+                (Subsession, Subsession.objects.filter(id=subsession.pk), (None, None)),
+                (Group, Group.objects.filter(**filter_in_sess), ('subsession.id', 'group.subsession_id')),
+                (Player, Player.objects.filter(**filter_in_sess), ('group.id', 'player.group_id')),
+            )
+
+            df = get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
+                                                  std_models_colnames, custom_models_colnames)
+            df = df.applymap(sanitize_pdvalue_for_live_update)
+            df_as_list = df.values.tolist()
+
+            if not rows:
+                rows = df_as_list
+            else:
+                for i in range(len(rows)):
+                    rows[i].extend(df_as_list[i])
+
+            round_colspan = 0
+            for model_name in ['player'] + custom_models_names_lwr + ['group', 'subsession']:
+                colspan = sum([c.startswith(model_name + '.') for c in df.columns])
+                model_headers.append((model_name.title(), colspan))
+                round_colspan += colspan
+
+            round_name = pretty_round_name(subsession._meta.app_label, subsession.round_number)
+
+            round_headers.append((round_name, round_colspan))
+
+            this_round_fields = []
+            this_round_fields_json = []
+            for model_name in ['Player'] + custom_models_names + ['Group', 'Subsession']:
+                column_names = [c[:c.index('.')] for c in df.columns if c.startswith(model_name + '.')]
+                this_model_fields = [pretty_name(n) for n in column_names]
+                this_model_fields_json = [
+                    '{}.{}.{}'.format(round_name, model_name, colname)
+                    for colname in column_names
+                ]
+                this_round_fields.extend(this_model_fields)
+                this_round_fields_json.extend(this_model_fields_json)
+
+            field_names.extend(this_round_fields)
+            field_names_json.extend(this_round_fields_json)
+
+        # dictionary for json response
+        # will be used only if json request  is done
 
         self.context_json = []
-        # TODO
+        for i, row in enumerate(rows, start=1):
+            d_row = OrderedDict()
+            # table always starts with participant 1
+            d_row['participant_label'] = '#{}'.format(i)
+            for t, v in zip(field_names_json, row):
+                d_row[t] = v
+            self.context_json.append(d_row)
 
         context = super(SessionData, self).get_context_data(**kwargs)   # calls `get_context_data()` from
                                                                         # AdminSessionPageMixin
-        context.update({})  # TODO
+        context.update({
+            'subsession_headers': round_headers,
+            'model_headers': model_headers,
+            'field_headers': field_names,
+            'rows': rows})
+
 
         return context
 
