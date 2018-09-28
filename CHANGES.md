@@ -1,5 +1,9 @@
 # Changes
 
+## v0.4.1 – 2018-09-28
+
+* fixed template error in `admin/SessionDataExtension.html`
+
 ## v0.4.0 – 2018-09-27
 
 * added admin extensions:

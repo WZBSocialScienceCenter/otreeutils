@@ -1,9 +1,10 @@
+{% extends "otree/admin/Session.html" %}
+
 {% comment %}
 Overrides default oTree live data template and only makes a minor change in the JavaScript to allow for displaying
 "<hr>" lines when a data update is received.
 {% endcomment %}
 
-{% extends "otree/admin/Session.html" %}
 
 {% block internal_scripts %}
 {{ block.super }}
