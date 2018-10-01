@@ -29,14 +29,20 @@ def sanitize_pdvalue_for_live_update(x):
     if pd.isna(x):
         return ''
     else:
-        return sanitize_for_live_update(x)
+        x_ = sanitize_for_live_update(x)
+        if x_.endswith('.0') and isinstance(x, (float, int)):
+            x_ = x_[:x_.rindex('.')]
+        return x_
 
 
 def sanitize_pdvalue_for_csv(x):
     if pd.isna(x):
         return ''
     else:
-        return sanitize_for_csv(x)
+        x_ = str(sanitize_for_csv(x))
+        if x_.endswith('.0'):
+            x_ = x_[:x_.rindex('.')]
+        return x_
 
 
 def get_links_between_std_and_custom_models(custom_models_conf, for_action):
@@ -287,7 +293,8 @@ class SessionDataExtension(SessionData):
         Obtain columns (fields) for each custom model in `custom_model_conf`.
         """
 
-        columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['data_view'])
+        columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['data_view'],
+                                                                             use_attname=True)
                               for name, conf in custom_model_conf.items()}
 
         return columns_for_models
@@ -360,12 +367,9 @@ class SessionDataExtension(SessionData):
     def get_context_data(self, **kwargs):
         session = self.session
 
-        rows = []
-
-        round_headers = []
-        model_headers = []
-        field_names = []
-        field_names_json = []  # field names for JSON response
+        subsession_data = OrderedDict()
+        all_std_models = defaultdict(list)
+        all_custom_models = defaultdict(list)
 
         for subsession in session.get_subsessions():
             models_module = import_module(subsession.__module__)
@@ -376,7 +380,7 @@ class SessionDataExtension(SessionData):
 
             custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
             custom_models_names = list(custom_models_conf.keys())
-            custom_models_names_lwr = [n.lower() for n in custom_models_names]
+            #custom_models_names_lwr = [n.lower() for n in custom_models_names]
 
             links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
 
@@ -395,43 +399,93 @@ class SessionDataExtension(SessionData):
             df = get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
                                                   std_models_colnames, custom_models_colnames)
             df = df.applymap(sanitize_pdvalue_for_live_update)
-            df_as_list = df.values.tolist()
 
-            if not rows:
-                rows = df_as_list
-            else:
-                for i in range(len(rows)):
-                    rows[i].extend(df_as_list[i])
+            app_label = subsession._meta.app_label
+            #round_name = pretty_round_name(app_label, subsession.round_number)
+            if app_label not in subsession_data:
+                subsession_data[app_label] = []
 
-            round_colspan = 0
-            for model_name in ['player'] + custom_models_names_lwr + ['group', 'subsession']:
-                colspan = sum([c.startswith(model_name + '.') for c in df.columns])
-                model_headers.append((model_name.title(), colspan))
-                round_colspan += colspan
+                for m in custom_models_names:
+                    m_label = app_label + '.' + m
+                    all_custom_models[m_label] = [c for c in df.columns if c.startswith(m.lower() + '.')]
 
-            round_name = pretty_round_name(subsession._meta.app_label, subsession.round_number)
+                for m, cols in std_models_colnames.items():
+                    m_lwr = m.lower()
+                    for c in cols:
+                        if c not in all_std_models[m_lwr]:
+                            all_std_models[m_lwr].append(c)
 
-            round_headers.append((round_name, round_colspan))
+            subsession_data[app_label].append(df)
 
-            this_round_fields = []
-            this_round_fields_json = []
-            for model_name in ['Player'] + custom_models_names + ['Group', 'Subsession']:
-                column_names = [c[:c.index('.')] for c in df.columns if c.startswith(model_name + '.')]
-                this_model_fields = [pretty_name(n) for n in column_names]
-                this_model_fields_json = [
-                    '{}.{}.{}'.format(round_name, model_name, colname)
-                    for colname in column_names
-                ]
-                this_round_fields.extend(this_model_fields)
-                this_round_fields_json.extend(this_model_fields_json)
+            #df_as_list = df.values.tolist()
 
-            field_names.extend(this_round_fields)
-            field_names_json.extend(this_round_fields_json)
+            # round_colspan = 0
+            # for model_name in ['player'] + custom_models_names_lwr + ['group', 'subsession']:
+            #     colspan = sum([c.startswith(model_name + '.') for c in df.columns])
+            #     model_headers.append((model_name.title(), colspan))
+            #     round_colspan += colspan
+            #
+            # round_name = pretty_round_name(subsession._meta.app_label, subsession.round_number)
+            #
+            # this_round_fields = []
+            # this_round_fields_json = []
+            # for model_name in ['Player'] + custom_models_names + ['Group', 'Subsession']:
+            #     column_names = [c[c.index('.')+1:] for c in df.columns if c.startswith(model_name.lower() + '.')]
+            #     this_model_fields = [pretty_name(n) for n in column_names]
+            #     this_model_fields_json = [
+            #         '{}.{}.{}'.format(round_name, model_name, colname)
+            #         for colname in column_names
+            #     ]
+            #     this_round_fields.extend(this_model_fields)
+            #     this_round_fields_json.extend(this_model_fields_json)
+            #
+            # field_names.extend(this_round_fields)
+            # field_names_json.extend(this_round_fields_json)
 
         # dictionary for json response
         # will be used only if json request  is done
 
+        model_headers = []
+        field_names = []
+        field_names_json = []  # field names for JSON response
+        field_names_df = []
+
+        for m in ['Subsession', 'Group', 'Player']:
+            m_lwr = m.lower()
+            cols = all_std_models[m_lwr]
+            model_headers.append((m, len(cols)))
+
+            if m == 'Player':
+                cols = ['payoff' if c == '_payoff' else c for c in cols]
+
+            field_names.extend(cols)
+            field_names_json.extend([m + '.' + c for c in cols])
+            field_names_df.extend([m.lower() + '.' + c for c in cols])
+
+        for m_label, cols in all_custom_models.items():
+            model_headers.append((m_label, len(cols)))
+            m_lwr = m_label[m_label.rfind('.')+1:]
+            field_names.extend([c[c.rfind('.')+1:] for c in cols])
+            field_names_json.extend([m_label + '.' + c for c in cols])
+            field_names_df.extend(cols)
+
+        subsess_headers = [('Collected data', len(field_names))]
+
+        rows = []
         self.context_json = []
+
+        for app_label, list_of_dfs in subsession_data.items():
+            for df in list_of_dfs:
+                coldata = []
+                n_df_rows = len(df)
+                for f in field_names_df:
+                    if f in df.columns:
+                        coldata.append(df[f].values.tolist())
+                    else:
+                        coldata.append([''] * n_df_rows)
+
+                rows.extend(zip(*coldata))
+
         for i, row in enumerate(rows, start=1):
             d_row = OrderedDict()
             # table always starts with participant 1
@@ -443,7 +497,7 @@ class SessionDataExtension(SessionData):
         context = super(SessionData, self).get_context_data(**kwargs)   # calls `get_context_data()` from
                                                                         # AdminSessionPageMixin
         context.update({
-            'subsession_headers': round_headers,
+            'subsession_headers': subsess_headers,
             'model_headers': model_headers,
             'field_headers': field_names,
             'rows': rows})
@@ -558,7 +612,7 @@ class SessionDataExtension(SessionData):
         return context
 
     def get_template_names(self):
-        return ['otreeutils/admin/SessionDataExtension.html']    # use own template
+        return ['otree/admin/SessionData.html']    # use own template
 
 
 class ExportIndexExtension(ExportIndex):
