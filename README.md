@@ -25,7 +25,7 @@ The repository contains three example apps which show the respective features an
 
 * `otreeutils_example1` -- Understanding questions and timeout warnings
 * `otreeutils_example2` -- Surveys
-* `otreeutils_example3_market` -- Market: An example showing custom data models to collect a dynamically determined data quantity. Shows how otreeutils' admin extensions allow live data view and data export for these requirements. See [its dedicated README page](/WZBSocialScienceCenter/otreeutils/tree/master/otreeutils_example3_market). 
+* `otreeutils_example3_market` -- Market: An example showing custom data models to collect a dynamically determined data quantity. Shows how otreeutils' admin extensions allow live data view and data export for these requirements. See [its dedicated README page](https://github.com/WZBSocialScienceCenter/otreeutils/tree/master/otreeutils_example3_market). 
 
 ## Limitations
 
