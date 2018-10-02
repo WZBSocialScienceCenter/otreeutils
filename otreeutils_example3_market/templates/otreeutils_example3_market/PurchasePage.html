@@ -1,0 +1,106 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block styles %}
+    <style>
+        #offers ul {
+            list-style-type: none;
+            padding: 0 0 0.5em 1em;
+            margin: 0 0 1em 0;
+        }
+
+        #offers label, #offers input, #offers select {
+            display: inline;
+            padding: 0 0.1rem 0 0.1rem;
+        }
+
+        .price, #cur_balance {
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    Purchase fruits &mdash; round {{ subsession.round_number }}
+{% endblock %}
+
+{% block content %}
+
+    <p>You are a <b>{{ player.role }}</b>.</p>
+
+    {% if player.role == 'buyer' %}
+        <p>You have an initial balance of <b>{{ player.initial_balance }}</b>.</p>
+        <p>The following things are offered on the market:</p>
+
+        {{ purchases_formset.management_form }}
+
+        <ul id="offers">
+        {% for offer, purchase_form in offers_with_forms %}
+            {{ purchase_form.fruit.as_hidden }}
+            <li class="offer-{{ forloop.counter0 }}">
+                {{ offer.kind }} for <span class="price">{{ offer.price }}</span> per piece from seller {{ offer.seller.participant.id }}
+                &mdash; buy {{ purchase_form.amount }} pieces (<span class="available">{{ offer.amount }}</span> available)
+            </li>
+        {% endfor %}
+        </ul>
+
+        <p>Your balance is now: <span id="cur_balance"></span></p>
+    {% else %}
+        <p>You're offering the following things:</p>
+
+        <ul>
+        {% for offer in sellers_offers %}
+            <li>{{ offer.amount }} pieces of {{ offer.kind }} for {{ offer.price }} a piece</li>
+        {% endfor %}
+        </ul>
+
+        <p>Your products are now being offered on the market. Just click "Next" and wait until the customer has finished.</p>
+    {% endif %}
+
+    <p>
+        {% next_button %}
+    </p>
+
+{% if player.role == 'buyer' %}
+    <script>
+        /**
+         * JavaScript code executed for customers only.
+         */
+
+        var INITIAL_BALANCE = {{ player.balance|json }};
+
+        /**
+         * Update balance by subtracting cost from initial balance.
+         */
+        function updateBalance() {
+            var balance = INITIAL_BALANCE;
+
+            $('#offers input[type=number]').each(function (form_idx, elem) {
+                var amount = parseInt($(elem).val());
+                var price = parseFloat($('#offers .offer-' + form_idx + ' .price').text().substr(1));
+
+                if (!Number.isNaN(amount) && !Number.isNaN(price)) {
+                    balance -= amount * price;
+                }
+            });
+
+
+            $('#cur_balance').text('$' + balance.toFixed(2));
+        }
+
+        // code to be executed when page is fully loaded
+        $(function() {
+            $('#offers input').on('input', updateBalance);
+            $('#offers input[type=number]').each(function (form_idx, elem) {
+                var inp = $(elem);
+                var available = parseFloat($('#offers .offer-' + form_idx + ' .available').text());
+                inp.attr('min', 0);
+                inp.attr('max', available);
+            });
+
+            updateBalance();
+        });
+    </script>
+{% endif %}
+
+{% endblock %}

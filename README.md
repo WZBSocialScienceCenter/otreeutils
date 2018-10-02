@@ -21,23 +21,23 @@ via `pip install otreeutils`.
 
 ## Examples
 
-The repository contains two example apps which show the respective features and how they can be used in own experiments:
+The repository contains three example apps which show the respective features and how they can be used in own experiments:
 
 * `otreeutils_example1` -- Understanding questions and timeout warnings
 * `otreeutils_example2` -- Surveys
-
-**An example showing custom data models and the admin extensions from otreeutils is provided in the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market).**
+* `otreeutils_example3_market` -- Market: An example showing custom data models to collect a dynamically determined data quantity. Shows how otreeutils' admin extensions allow live data view and data export for these requirements. 
 
 ## Limitations
 
-The admin interface extensions have still some limitations:
+The admin interface extensions have still a limitation: Data export with all data from custom models is only possible with per app download option, not with the "all apps" option.
 
-* The live data view by default only supports custom models linked to the *Player* model. You will need to override the `custom_rows_...` methods in `admin_extensions.views.SessionDataExtension` to adapt to your models if they link to other oTree models.
-* Data export with all data from custom models is only possible with per app download option, not with the "all apps" option.
+## Requirements
+
+This package requires oTree v2.x and [pandas](http://pandas.pydata.org/). The requirements will be installed along with otreeutils when using `pip` (see below). 
 
 ## Installation and setup
 
-In order to use *otreeutils* in your experiment implementation, you only need to the following things:
+In order to use otreeutils in your experiment implementation, you only need to do the following things:
 
 1. Either install the package from [PyPI](https://pypi.python.org/pypi/otreeutils) via
    *pip* (`pip install otreeutils`) or download/clone this github repository and copy

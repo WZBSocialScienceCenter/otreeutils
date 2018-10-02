@@ -1,0 +1,48 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block styles %}
+    <style>
+    </style>
+{% endblock %}
+
+{% block title %}
+    Results &mdash; round {{ subsession.round_number }}
+{% endblock %}
+
+{% block content %}
+
+    <p>You are a <b>{{ player.role }}</b>.</p>
+
+    {% if player.role == 'buyer' %}
+        <p>You bought the following fruits:</p>
+
+        {% if transactions %}
+            <ul>
+            {% for t in transactions %}
+                <li>{{ t.amount }} pieces of {{ t.fruit.kind }} for {{ t.fruit.price }} per piece from seller {{ t.fruit.seller.participant.id }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>You didn't buy any fruits.</p>
+        {% endif %}
+
+        <p>You spent {{ balance_change }} on this and now have a balance of {{ player.balance }}.</p>
+    {% else %}
+        {% if transactions %}
+            <p>You sold the following things:</p>
+            {% for t in transactions %}
+                <li>{{ t.amount }} pieces of {{ t.fruit.kind }} for {{ t.fruit.price }} per piece to buyer {{ t.buyer.participant.id }}</li>
+            {% endfor %}
+        {% else %}
+            <p>You didn't sell any fruits.</p>
+        {% endif %}
+
+        <p>You gained {{ balance_change }} from this and now have a balance of {{ player.balance }}.</p>
+    {% endif %}
+
+    <p>
+        {% next_button %}
+    </p>
+
+{% endblock %}

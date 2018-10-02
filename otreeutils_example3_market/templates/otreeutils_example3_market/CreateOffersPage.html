@@ -1,0 +1,199 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block styles %}
+    <style>
+        #offers ul {
+            list-style-type: none;
+            padding: 0 0 0.5em 1em;
+            margin: 0 0 1em 0;
+            border-bottom: 1px solid black;
+        }
+
+        #offers ul li {
+            line-height: 3;
+        }
+
+        #offers label, #offers input, #offers select {
+            padding: 0 0.1rem 0 0.1rem;
+            display: inline;
+        }
+
+        #offers .price_disp {
+            margin-left: 0.5em;
+        }
+
+        #offers .prev_rounds_info {
+            margin-left: 0.5em;
+        }
+
+        #cur_balance {
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    Create offers &mdash; round {{ subsession.round_number }}
+{% endblock %}
+
+{% block content %}
+
+    <p>You are a <b>{{ player.role }}</b>.</p>
+
+    {% if player.role == 'buyer' %}
+        <p>The sellers are currently deciding on their offers. Just click "Next" and wait until they finished.</p>
+    {% else %}
+        <p>You must decide on your offers now. You have an initial balance of <b>{{ player.initial_balance }}</b>.</p>
+
+        <p>Purchase prices per piece for you as a seller:</p>
+        <ul>
+        {% for fruit_label, price in purchase_prices.items %}
+            <li><b>{{ fruit_label }}:</b> {{ price }}</li>
+        {% endfor %}
+        </ul>
+
+        {{ offers_formset.management_form }}
+
+        <div id="offers">
+        {% for offer_form in offers_formset %}
+            <h4>Offer #{{ forloop.counter }}</h4>
+            <ul>
+                {{ offer_form.as_ul }}
+            </ul>
+        {% endfor %}
+        </div>
+
+        <p><input type="button" value="+" id="add_offer"></p>
+
+        <div id="empty_offers_form" style="display:none">
+            <h4>Offer #<span class="offer_counter"></span></h4>
+            <ul>
+                {{ offers_formset.empty_form.as_ul }}
+            </ul>
+        </div>
+
+        <p>Your balance is now: <span id="cur_balance"></span></p>
+    {% endif %}
+
+    <p>
+        {% next_button %}
+    </p>
+
+{% if player.role == 'seller' %}
+    <script>
+        /**
+         * JavaScript code executed for sellers only.
+         */
+
+        var PURCHASE_PRICES = {{ purchase_prices|json }};   // prices per fruit for sellers
+        var INITIAL_BALANCE = {{ player.initial_balance|json }};
+        var costs = {};
+
+        // define action to be executed when a new offer form is added to a formset
+        $('#add_offer').click(function() {
+            // form index is current number of forms
+            var form_idx = parseInt($('#id_form-TOTAL_FORMS').val());
+
+            // create new form from hidden empty form template
+            var new_offer_form = $($('#empty_offers_form').html().replace(/__prefix__/g, form_idx));
+            new_offer_form.find('.offer_counter').text(form_idx+1);
+            new_offer_form.find('input').on('input', formElemChanged);
+            new_offer_form.find('select').on('input', formElemChanged);
+
+            // add this form to the formset
+            $('#offers').append(new_offer_form);
+
+            // increment number of forms
+            $('#id_form-TOTAL_FORMS').val(form_idx+1);
+        });
+
+        /**
+         * Action to be executed when a form element has changed.
+         */
+        function formElemChanged() {
+            // regex to get form index and input element name
+            var regex_res = /^id_form-(\d+)-(\w+)$/.exec(this.id);
+
+            if (regex_res !== null && regex_res.length === 3) {
+                var form_idx = parseInt(regex_res[1]);      // form index
+                var input = regex_res[2];                   // input element name
+
+                // update price and cost when the input element is for the amount or kind attribute
+                if (input === 'amount' || input === 'kind') {
+                    var amount_field = $('#id_form-' + form_idx + '-amount');
+                    var amount = parseFloat(amount_field.val());
+                    var kind = $('#id_form-' + form_idx + '-kind').val();
+                    var price_disp_id = 'id_form-' + form_idx + '-pricedisplay';
+
+                    if (PURCHASE_PRICES.hasOwnProperty(kind) && !Number.isNaN(amount)) {
+                        var price = PURCHASE_PRICES[kind] * amount;
+                        var price_disp = $('#' + price_disp_id);
+                        if (price_disp.length === 0) {
+                            price_disp = $('<span class="price_disp" id="' + price_disp_id + '"></span>');
+                            amount_field.after(price_disp);
+                        }
+
+                        price_disp.html('cost: <b>&dollar;' + price.toFixed(2) + '</b>');
+                        costs[form_idx] = price;
+                    } else {
+                        $('#' + price_disp_id).remove();
+                        costs[form_idx] = 0;
+                    }
+                }
+            }
+
+            updateBalance();
+        }
+
+        /**
+         * update balance by subtracting the current cost from the initial balance
+         */
+        function updateBalance() {
+            var balance = INITIAL_BALANCE;
+
+            for (var form_idx in costs) {
+                if (costs.hasOwnProperty(form_idx)) {
+                    balance -= costs[form_idx];
+                }
+            }
+
+            $('#cur_balance').text('$' + balance.toFixed(2));
+        }
+
+        // code to be executed when page is fully loaded
+        $(function() {
+            // set event listeners
+            $('#offers input').on('input', formElemChanged);
+            $('#offers select').on('input', formElemChanged);
+
+            // for everything but the first round, show an information about the fruit amount from the prev. rounds
+            // and also set this to the "old_amount" hidden input
+            {% if subsession.round_number > 1 %}
+            $('#offers input[type=number]').each(function (_, inp) {
+                if (inp.id.substr(-6) === 'amount') {
+                    var field = $(inp);
+                    var v = parseInt(field.val());
+                    if (v !== 0) {
+                        var fparent = field.parent();
+                        fparent.parent().find('select').attr('disabled', true);
+                        fparent.append('<span class="prev_rounds_info">You already have ' + v + ' pieces from previous rounds.</span>');
+
+                        var old_amount_id = '#' + inp.id.substring(0, inp.id.length - 6) + 'old_amount';
+                        $(old_amount_id).val(v);
+                        field.val(0);
+                    }
+                }
+            });
+            {% endif %}
+
+            updateBalance();
+
+            // quickly re-enable the "kind" drop-down, otherwise it will not be submitted as form data
+            $('.otree-btn-next').click(function () {
+                $('#offers select').attr('disabled', false);
+            });
+        });
+    </script>
+{% endif %}
+{% endblock %}

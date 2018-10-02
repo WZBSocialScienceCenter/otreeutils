@@ -60,5 +60,5 @@ setup(
     packages=['otreeutils'],
     include_package_data=True,
 
-    install_requires=['otree>=2.0.0'],
+    install_requires=['otree>=2.0.0', 'pandas'],
 )
