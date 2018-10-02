@@ -1,6 +1,6 @@
 # otreeutils
 
-November 2016 – September 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+October 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
 ## A package with common oTree utilities
 

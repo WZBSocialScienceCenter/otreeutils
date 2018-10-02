@@ -1,5 +1,11 @@
 # Changes
 
+## v0.5.0 – 2018-10-02
+
+* modified admin extensions to use pandas for data joins, removes limitation in live data viewer
+* fixed issue with tests for example 1 and 2
+* added example 3: market with custom data models
+
 ## v0.4.1 – 2018-09-28
 
 * fixed template error in `admin/SessionDataExtension.html`
