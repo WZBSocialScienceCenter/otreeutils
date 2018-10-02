@@ -56,7 +56,7 @@ AWS_SECRET_ACCESS_KEY = environ.get('AWS_SECRET_ACCESS_KEY')
 
 # e.g. EUR, CAD, GBP, CHF, CNY, JPY
 REAL_WORLD_CURRENCY_CODE = 'USD'
-USE_POINTS = True
+USE_POINTS = False
 
 
 # e.g. en, de, fr, it, ja, zh-hans
@@ -68,6 +68,13 @@ INSTALLED_APPS = [
     'otree',
     'otreeutils'    # this is important -- otherwise otreeutils' templates and static files won't be accessible
 ]
+
+
+# custom URL and WebSockets configuration
+# this is important -- otherwise otreeutils' admin extensions won't be activated
+ROOT_URLCONF = 'otreeutils_example3_market.urls'
+CHANNEL_ROUTING = 'otreeutils_example3_market.routing.channel_routing'
+
 
 # SENTRY_DSN = ''
 
@@ -114,15 +121,27 @@ SESSION_CONFIG_DEFAULTS = {
 SESSION_CONFIGS = [
     {
         'name': 'otreeutils_example1',
-        'display_name': 'oTree Utils Example 1 (Understanding questions, timeout warnings)',
+        'display_name': 'otreeutils example 1 (Understanding questions, timeout warnings)',
         'num_demo_participants': 1,   # doesn't matter
         'app_sequence': ['otreeutils_example1'],
     },
     {
         'name': 'otreeutils_example2',
-        'display_name': 'oTree Utils Example 2 (Surveys)',
+        'display_name': 'otreeutils example 2 (Surveys)',
         'num_demo_participants': 1,  # doesn't matter
         'app_sequence': ['otreeutils_example2'],
+    },
+    {
+        'name': 'otreeutils_example3_market',
+        'display_name': 'otreeutils example 3 (Custom data models: Market)',
+        'num_demo_participants': 3,  # at least two
+        'app_sequence': ['otreeutils_example3_market'],
+    },
+    {
+        'name': 'otreeutils_example4_market_and_survey',
+        'display_name': 'otreeutils example 4 (Market and survey)',
+        'num_demo_participants': 3,  # at least two
+        'app_sequence': ['otreeutils_example3_market', 'otreeutils_example2'],
     }
 ]
 

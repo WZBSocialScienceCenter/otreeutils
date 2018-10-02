@@ -12,16 +12,185 @@ from importlib import import_module
 
 from django.http import JsonResponse
 
-from otree.views.admin import SessionData, pretty_name, pretty_round_name
+from otree.views.admin import SessionData
 from otree.views.export import ExportIndex, ExportApp, get_export_response
-from otree.export import sanitize_for_live_update, get_rows_for_live_update, _export_csv, _export_xlsx,\
+from otree.export import sanitize_for_live_update, get_field_names_for_live_update, _export_xlsx,\
     get_field_names_for_csv, sanitize_for_csv
 from otree.common_internal import get_models_module
 from otree.db.models import Model
 from otree.models.participant import Participant
 from otree.models.session import Session
+import pandas as pd
 
-from otreeutils.common import hierarchical_data_columnwise, columnwise_data_as_rows
+
+def sanitize_pdvalue_for_live_update(x):
+    if pd.isna(x):
+        return ''
+    else:
+        x_ = sanitize_for_live_update(x)
+
+        # this is necessary because pandas transforms int columns with NA values to float columns:
+        if x_.endswith('.0') and isinstance(x, (float, int)):
+            x_ = x_[:x_.rindex('.')]
+        return x_
+
+
+def sanitize_pdvalue_for_csv(x):
+    if pd.isna(x):
+        return ''
+    else:
+        x_ = str(sanitize_for_csv(x))
+
+        # this is necessary because pandas transforms int columns with NA values to float columns:
+        if x_.endswith('.0') and isinstance(x, (float, int)):
+            x_ = x_[:x_.rindex('.')]
+        return x_
+
+
+def get_links_between_std_and_custom_models(custom_models_conf, for_action):
+    """
+    Identify the links between custom models and standard models using custom models configuration `custom_models_conf`.
+    Return as dict with lists:
+        standard model class -> list of tuples (custom model class, link field name)
+    """
+
+    std_to_custom = defaultdict(list)
+
+    for model_name, conf in custom_models_conf.items():
+        model = conf['class']
+
+        # get the name and field instance of the link
+        link_field_name = conf[for_action]['link_with']
+        link_field = getattr(model, link_field_name)
+
+        # get the related standard oTree model
+        rel_model = link_field.field.related_model
+
+        # save to dicts
+        std_to_custom[rel_model].append((conf['class'], link_field_name + '_id'))
+
+    return std_to_custom
+
+
+def get_modelnames_from_links_between_std_and_custom_models_structure(std_to_custom):
+    """
+    Get model names from output of `get_links_between_std_and_custom_models()`
+
+    Return as dict with lists: standard model name -> list of lowercase custom model names
+    """
+
+    modelnames = defaultdict(list)
+
+    for std_model_name, (custom_model_class, _) in std_to_custom.items():
+        modelnames[std_model_name.__name__.lower()].append(custom_model_class.__name__.lower())
+
+    return modelnames
+
+
+def get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
+                                     std_models_colnames, custom_models_colnames):
+    """
+    Create a dataframe that joins data from standard models in `std_models_querysets` with data from custom models
+    via `links_to_custom_models`. Use columns defined in `std_models_colnames` for standard models and
+    `custom_models_colnames` for custom models.
+
+    `std_models_querysets` is a list of tuples, with each row containing:
+    - the standard oTree model (Subession, Group or Player)
+    - the queryset to fetch the data
+    - a tuple (left field name, right field name) defining the columns to use for joining the data
+
+    `links_to_custom_models` comes from `get_modelnames_from_links_between_std_and_custom_models_structure()` and is
+    a dict with lists: standard model name -> list of lowercase custom model names.
+
+    The first dataframe fetched via `std_models_querysets` defines the base data. Every following dataframe will be
+    joined with the base dataframe and result in a new base dataframe to be joined in the next iteration. A left join
+    will be performed for each iteration using the model links defined in each `std_models_querysets` row.
+
+    Returns a data frame of joined data. Each column is prefixed by the lowercase model name, e.g. "player.payoff".
+    """
+    df = None   # base dataframe
+
+    # iterate through each standard model queryset
+    for smodel, smodel_qs, (smodel_link_left, smodel_link_right) in std_models_querysets:
+        smodel_name = smodel.__name__
+        smodel_name_lwr = smodel_name.lower()
+        smodel_colnames = std_models_colnames[smodel_name_lwr]
+
+        if 'id' not in smodel_colnames:   # always add the ID field (necessary for joining)
+            smodel_colnames += ['id']
+
+        # optionally add field for the right side of the join
+        remove_right_link_col = False   # remove it after joining
+        if smodel_link_right:
+            smodel_link_right_reduced = smodel_link_right[smodel_link_right.rindex('.')+1:]
+            if smodel_link_right_reduced not in smodel_colnames:
+                remove_right_link_col = True
+                smodel_colnames += [smodel_link_right_reduced]
+
+        # special handling for Player's attributes payoff and role
+        if smodel_name == 'Player':
+            smodel_colnames[smodel_colnames.index('payoff')] = '_payoff'
+            smodel_colnames = [c for c in smodel_colnames if c != 'role']
+
+        if not smodel_qs.exists():   # create empty data frame with given column names
+            df_smodel = pd.DataFrame(OrderedDict((c, []) for c in smodel_colnames))
+        else:                        # create and fill data frame fetching values from the queryset
+            df_smodel = pd.DataFrame(list(smodel_qs.values()))[smodel_colnames]
+
+        # special handling for Player's attributes payoff and role
+        if smodel_name == 'Player':
+            df_smodel.rename(columns={'_payoff': 'payoff'}, inplace=True)
+            df_smodel['role'] = [p.role() for p in smodel_qs]
+
+        # prepend model name to each column
+        renamings = dict((c, smodel_name_lwr + '.' + c) for c in df_smodel.columns)
+        df_smodel.rename(columns=renamings, inplace=True)
+
+        if df is None:   # first dataframe is used as base dataframe
+            assert smodel_link_left is None and smodel_link_right is None
+            df = df_smodel
+        else:            # perform the left join, use result as new base dataframe for next iteration
+            df = pd.merge(df, df_smodel, how='left', left_on=smodel_link_left, right_on=smodel_link_right)
+
+        if smodel in links_to_custom_models:  # we have custom model(s) linked to this standard model
+            for cmodel, cmodel_link_field_name in links_to_custom_models[smodel]:
+                cmodel_name = cmodel.__name__
+                cmodel_name_lwr = cmodel_name.lower()
+
+                # fetch only the needed IDs
+                smodel_ids = df_smodel[smodel_name_lwr + '.id'].unique()
+                cmodel_qs = cmodel.objects.filter(**{cmodel_link_field_name + '__in': smodel_ids})
+                cmodel_colnames = custom_models_colnames[cmodel_name_lwr]
+
+                # optionally add field for the right side of the join
+                remove_cmodel_link_field_name = False       # remove it after joining
+                if cmodel_link_field_name not in cmodel_colnames:
+                    cmodel_colnames += [cmodel_link_field_name]
+                    remove_cmodel_link_field_name = True
+
+                if not cmodel_qs.exists():   # create empty data frame with given column names
+                    df_cmodel = pd.DataFrame(OrderedDict((c, []) for c in cmodel_colnames))
+                else:                        # create and fill data frame fetching values from the queryset
+                    df_cmodel = pd.DataFrame(list(cmodel_qs.values()))[cmodel_colnames]
+
+                # prepend model name to each column
+                renamings = dict((c, cmodel_name_lwr + '.' + c) for c in df_cmodel.columns)
+                df_cmodel.rename(columns=renamings, inplace=True)
+
+                cmodel_link_field_name = cmodel_name_lwr + '.' + cmodel_link_field_name
+
+                # perform the left join, use result as new base dataframe for next iteration
+                df = pd.merge(df, df_cmodel, how='left',
+                              left_on=smodel_name_lwr + '.id',
+                              right_on=cmodel_link_field_name)
+
+                if remove_cmodel_link_field_name:
+                    del df[cmodel_link_field_name]
+
+        if remove_right_link_col:
+            del df[smodel_link_right]
+
+    return df
 
 
 def get_custom_models_conf(models_module, for_action):
@@ -83,9 +252,9 @@ def _set_of_ids_from_rows_per_key(rows, idfield):
     return set(x[idfield] for r in rows.values() for x in r)
 
 
-def _odict_from_row(row, columns):
+def _odict_from_row(row, columns, is_obj=False):
     """Create an OrderedDict from a dict `row` using the columns in the order of `columns`."""
-    return OrderedDict((c, sanitize_for_csv(row[c])) for c in columns)
+    return OrderedDict((c, sanitize_for_csv(getattr(row, c) if is_obj else row[c])) for c in columns)
 
 
 class SessionDataExtension(SessionData):
@@ -94,226 +263,137 @@ class SessionDataExtension(SessionData):
     """
 
     @staticmethod
-    def custom_rows_queryset(models_module, custom_models_names,  **kwargs):
-        """
-        Queryset to fetch rows from custom models `custom_models_names` in module `models_module`.
-
-        Currently, this only supports custom models linked to the Player model, but overriding this method can add
-        support to other linked models.
-        """
-
-        base_class = 'Player'
-        base_key = 'id_in_group'
-        base_model = getattr(models_module, base_class)
-        prefetch_related_args = [m.lower() + '_set' for m in custom_models_names]
-
-        # prefetches custom models linked to base_class
-
-        return (base_model.objects\
-            .filter(subsession_id=kwargs['subsession'].pk)\
-            .prefetch_related(*prefetch_related_args),
-            base_class,
-            base_key)
-
-    @staticmethod
-    def custom_rows_builder(qs, columns_for_custom_models, custom_models_baseclass, custom_models_basekey):
-        """
-        Build rows for data from queryset `qs` with custom models using columns `columns_for_custom_models`.
-
-        Returns a nested dict with:
-        base class key (e.g. player ID) -> custom model name -> list of data rows for that model
-        """
-        rows = defaultdict(lambda: defaultdict(list))
-
-        for base_instance in qs:  # base_instance is Player if default `custom_rows_queryset()` is used
-            key = str(getattr(base_instance, custom_models_basekey))
-
-            # for each custom model and its columns...
-            for model_name_lwr, colnames in columns_for_custom_models.items():
-                # get the respective data linked to the current base_instance for this custom model
-                model_results_set = getattr(base_instance, model_name_lwr + '_set').all()
-
-                # add the custom model data
-                for res in model_results_set:
-                    row = []
-                    for colname in colnames:
-                        attr = getattr(res, colname, '')
-                        if isinstance(attr, Model):  # use ID if we encounter a foreign key
-                            attr = attr.pk
-
-                        row.append(sanitize_for_live_update(attr))
-
-                    rows[key][model_name_lwr].append(row)
-
-        return rows
-
-    @staticmethod
     def custom_columns_builder(custom_model_conf):
         """
         Obtain columns (fields) for each custom model in `custom_model_conf`.
         """
 
-        columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['data_view'])
+        columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['data_view'],
+                                                                             use_attname=True)
                               for name, conf in custom_model_conf.items()}
 
         return columns_for_models
 
-    @staticmethod
-    def combine_rows(subsession_rows, custom_rows, columns_for_models, columns_for_custom_models,
-                     custom_models_names_lwr, custom_models_baseclass, custom_models_basekey):
-        """
-        Combine oTree subsession rows `subsession_rows` with rows from the custom data models `custom_rows`.
-        """
-        combined_rows = []
-        otree_modelnames = ['Player', 'Group', 'Subsession']
-        otree_modelnames_lwr = [n.lower() for n in otree_modelnames]
-        for row in subsession_rows:
-            # find row key
-            row_key = None
-
-            i = 0
-            for ot_model_name in otree_modelnames:
-                model_fields = columns_for_models[ot_model_name.lower()]
-                n_fields = len(model_fields)
-
-                if ot_model_name == custom_models_baseclass:
-                    try:
-                        key_idx = model_fields.index(custom_models_basekey)
-                        row_key = row[i + key_idx]
-                    except ValueError:  # custom_models_basekey not in model_fields
-                        pass
-
-                i += n_fields
-
-            if row_key is None:
-                raise ValueError('no row key found (base class: `%s`, key name: `%s`)'
-                                 % (custom_models_baseclass, custom_models_basekey))
-
-            combrow = []  # combined row
-            n_fields_from_otree_models = 0
-            for model_name in ['player'] + custom_models_names_lwr + ['group', 'subsession']:
-                if model_name in otree_modelnames_lwr:  # standard oTree model
-                    n_fields = len(columns_for_models[model_name])
-                    field_idx_start = n_fields_from_otree_models
-                    field_idx_end = n_fields_from_otree_models + n_fields
-
-                    # insert values at the correct indices
-                    combrow.extend(row[field_idx_start:field_idx_end])
-                    n_fields_from_otree_models += n_fields
-                else:  # custom model
-                    n_fields = len(columns_for_custom_models[model_name])
-
-                    # get all fields and their values of this model
-                    custom_vals = custom_rows[row_key][model_name]
-                    if custom_vals:
-                        assert all(n == n_fields for n in map(len, custom_vals))
-                        # for 1:m fields, add several custom values divided by a horizontal line <hr>
-                        for col_values in zip(*custom_rows[row_key][model_name]):
-                            col_values = [v if v else '&nbsp;' for v in col_values]
-                            combrow.append('<hr>'.join(col_values))
-                    else:
-                        combrow.extend([''] * n_fields)
-
-            combined_rows.append(combrow)
-
-        n_cols_otree_models = sum(map(len, columns_for_models.values()))
-        n_cols_custom_models = sum(map(len, columns_for_custom_models.values()))
-        assert all(n == n_cols_otree_models + n_cols_custom_models for n in map(len, combined_rows)),\
-               'number of fields for at least 1 row is not the sum of oTree model fields and custom model fields'
-
-        return combined_rows
-
     def get_context_data(self, **kwargs):
         """
-        Main overridden function: Generate the data to be displayed in the live data view.
+        Load and return data for live data view. This overrides the same method from `SessionData` and is customized
+        to merge the data from standard models with custom models' data.
+        It outputs the data in a different format, which is a "long" format: The subsessions (rounds) and
+        data for players in each round in vertical orientation along with possible custom data output.
         """
-
-        def columns_for_any_modelname(modelname):
-            cols = columns_for_custom_models.get(modelname, columns_for_models.get(modelname, []))
-            if not cols:
-                raise ValueError('No fields/columns for model `%s`' % model_name)
-            return cols
-
         session = self.session
 
-        rows = []
+        subsession_data = OrderedDict()          # app name -> list of data frames (one per subsession)
+        all_std_models = defaultdict(list)       # model name -> list of column names for standard models
+        all_custom_models = defaultdict(list)    # model name -> list of column names for custom models
 
-        round_headers = []
+        # go through all subsessions
+        # each subsession might come from a different app
+        for subsession in session.get_subsessions():
+            # get model classes
+            models_module = import_module(subsession.__module__)
+
+            Subsession = models_module.Subsession
+            Group = models_module.Group
+            Player = models_module.Player
+
+            # get custom model configuration, if there is any
+            custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
+            custom_models_names = list(custom_models_conf.keys())
+
+            # identify links between standard and custom models
+            links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
+
+            # find out column names for standard models
+            std_models_colnames = {m.__name__.lower(): get_field_names_for_live_update(m)
+                                   for m in (Subsession, Group, Player)}
+
+            # find out column names for custom models
+            custom_models_colnames = self.custom_columns_builder(custom_models_conf)
+
+            # pre-filter querysets to get only data of this subsession
+            filter_in_subsess = dict(subsession_id__in=[subsession.pk])
+
+            # define querysets for standard models and their links for merging as left index, right index
+            # the order is important!
+            std_models_querysets = (
+                (Subsession, Subsession.objects.filter(id=subsession.pk), (None, None)),
+                (Group, Group.objects.filter(**filter_in_subsess), ('subsession.id', 'group.subsession_id')),
+                (Player, Player.objects.filter(**filter_in_subsess), ('group.id', 'player.group_id')),
+            )
+
+            # create a dataframe for this subsession's complete data incl. custom models data
+            df = get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
+                                                  std_models_colnames, custom_models_colnames)
+
+            # sanitize each value
+            df = df.applymap(sanitize_pdvalue_for_live_update)
+
+            # add data to subsession data structure
+            app_label = subsession._meta.app_label
+            if app_label not in subsession_data:
+                subsession_data[app_label] = []
+
+                for m in custom_models_names:
+                    m_label = app_label + '.' + m
+                    all_custom_models[m_label] = [c for c in df.columns if c.startswith(m.lower() + '.')]
+
+                for m, cols in std_models_colnames.items():
+                    m_lwr = m.lower()
+                    for c in cols:
+                        if c not in all_std_models[m_lwr]:
+                            all_std_models[m_lwr].append(c)
+
+            subsession_data[app_label].append(df)
+
+        # generate lists of headers and field names ...
         model_headers = []
         field_names = []
+        field_names_json = []  # field names for JSON response
+        field_names_df = []    # field names for lookup in data frame
 
-        # field names for JSON response
-        field_names_json = []
+        # ... for standard models first
+        for m in ['Subsession', 'Group', 'Player']:
+            m_lwr = m.lower()
+            cols = all_std_models[m_lwr]
+            model_headers.append((m, len(cols)))
 
-        for subsession in session.get_subsessions():
-            models_module = import_module(subsession.__module__)
-            custom_models_conf = get_custom_models_conf(models_module, 'data_view')
-            custom_models_names = list(custom_models_conf.keys())
-            custom_models_names_lwr = [n.lower() for n in custom_models_names]
+            if m == 'Player':
+                cols = ['payoff' if c == '_payoff' else c for c in cols]
 
-            # can't use subsession._meta.app_config.name, because it won't work
-            # if the app is removed from SESSION_CONFIGS after the session is
-            # created.
-            columns_for_models, subsession_rows = get_rows_for_live_update(subsession)
+            field_names.extend(cols)
+            field_names_json.extend([m + '.' + c for c in cols])
+            field_names_df.extend([m.lower() + '.' + c for c in cols])
 
-            # get the columns for the custom models
-            columns_for_custom_models = self.custom_columns_builder(custom_models_conf)
+        # ... and then for custom data models
+        for m_label, cols in all_custom_models.items():
+            model_headers.append((m_label, len(cols)))
+            field_names.extend([c[c.rfind('.')+1:] for c in cols])
+            field_names_json.extend([m_label + '.' + c for c in cols])
+            field_names_df.extend(cols)
 
-            # get the queryset for the custom models
-            custom_models_qs, custom_models_baseclass, custom_models_basekey = \
-                self.custom_rows_queryset(models_module, custom_models_names, subsession=subsession)
+        # set generic header name
+        subsess_headers = [('Collected data', len(field_names))]
 
-            # build the rows for the custom models
-            custom_rows = self.custom_rows_builder(custom_models_qs, columns_for_custom_models,
-                                                   custom_models_baseclass, custom_models_basekey)
-            # pprint(subsession_rows)
-            # pprint(columns_for_custom_models)
-            # pprint(custom_rows)
+        # put data into rows
+        rows = []
+        for app_label, list_of_dfs in subsession_data.items():
+            for df in list_of_dfs:
+                coldata = []
+                n_df_rows = len(df)
+                for f in field_names_df:
+                    if f in df.columns:
+                        coldata.append(df[f].values.tolist())
+                    else:
+                        coldata.append([''] * n_df_rows)
 
-            # combine those rows with the subsession rows
-            combined_rows = self.combine_rows(subsession_rows, custom_rows, columns_for_models,
-                                              columns_for_custom_models, custom_models_names_lwr,
-                                              custom_models_baseclass, custom_models_basekey)
+                rows.extend(zip(*coldata))
 
-            if not rows:
-                rows = combined_rows
-            else:
-                for i in range(len(rows)):
-                    rows[i].extend(combined_rows[i])
-
-            round_colspan = 0
-            for model_name in ['player'] + custom_models_names_lwr + ['group', 'subsession']:
-                colspan = len(columns_for_any_modelname(model_name))
-                model_headers.append((model_name.title(), colspan))
-                round_colspan += colspan
-
-            round_name = pretty_round_name(subsession._meta.app_label, subsession.round_number)
-
-            round_headers.append((round_name, round_colspan))
-
-            this_round_fields = []
-            this_round_fields_json = []
-            for model_name in ['Player'] + custom_models_names + ['Group', 'Subsession']:
-                column_names = columns_for_any_modelname(model_name.lower())
-                this_model_fields = [pretty_name(n) for n in column_names]
-                this_model_fields_json = [
-                    '{}.{}.{}'.format(round_name, model_name, colname)
-                    for colname in column_names
-                ]
-                this_round_fields.extend(this_model_fields)
-                this_round_fields_json.extend(this_model_fields_json)
-
-            field_names.extend(this_round_fields)
-            field_names_json.extend(this_round_fields_json)
-
-        # dictionary for json response
-        # will be used only if json request  is done
-
+        # create JSON response data
         self.context_json = []
         for i, row in enumerate(rows, start=1):
             d_row = OrderedDict()
-            # table always starts with participant 1
-            d_row['participant_label'] = 'P{}'.format(i)
+            d_row['participant_label'] = '#{}'.format(i)   # it has nothing to do with participant IDs any more
             for t, v in zip(field_names_json, row):
                 d_row[t] = v
             self.context_json.append(d_row)
@@ -321,14 +401,15 @@ class SessionDataExtension(SessionData):
         context = super(SessionData, self).get_context_data(**kwargs)   # calls `get_context_data()` from
                                                                         # AdminSessionPageMixin
         context.update({
-            'subsession_headers': round_headers,
+            'subsession_headers': subsess_headers,
             'model_headers': model_headers,
             'field_headers': field_names,
             'rows': rows})
+
         return context
 
     def get_template_names(self):
-        return ['otreeutils/admin/SessionDataExtension.html']    # use own template
+        return ['otree/admin/SessionData.html']    # use own template
 
 
 class ExportIndexExtension(ExportIndex):
@@ -395,53 +476,56 @@ class ExportAppExtension(ExportApp):
         return columns_for_models
 
     @classmethod
-    def get_data_rows_for_app(cls, app_name):
+    def get_dataframe_for_app(cls, app_name):
         """
         Generate data rows for app `app_name`, also adding rows of custom data models.
         """
 
-        # get the hierarchically structured data and flattened field names
-        data, colnames = cls.get_hierarchical_data_for_app(app_name, return_columns=True)
+        models_module = get_models_module(app_name)
 
-        # turn hierarchical data into column-wise data
-        coldata = hierarchical_data_columnwise(data)
+        # get the standard models
+        Player = models_module.Player
+        Group = models_module.Group
+        Subsession = models_module.Subsession
 
-        if not coldata:
-            return [[]]
+        # get custom model configuration, if there is any
+        custom_models_conf = get_custom_models_conf(models_module, for_action='export_data')
 
-        # if there's no data for certain models, then their fields will not be listed in the columns
-        # however, we want all columns to be exported, even if they do not contain data
+        # identify links between standard and custom models
+        links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='export_data')
 
-        # make column names matchable
-        tmp_coldata = OrderedDict()
-        for c, v in coldata.items():
-            c = c.replace('__', '')
-            n_dots = c.count('.')
-            if n_dots > 1:
-                last_dot_idx = c.rindex('.')
-                cut_idx = c.rindex('.', 0, last_dot_idx)
-                c = c[cut_idx+1:]
-            elif n_dots == 0:
-                c = 'session.' + c
+        # find out column names for standard models
+        std_models_colnames = {m.__name__.lower(): get_field_names_for_csv(m)
+                               for m in (Session, Subsession, Group, Player, Participant)}
+        std_models_colnames['player'].append('participant_id')
 
-            tmp_coldata[c] = v
+        # find out column names for custom models
+        custom_models_colnames = cls.custom_columns_builder(custom_models_conf)
 
-        coldata = tmp_coldata
+        # create lists of IDs that will be used for the export
+        participant_ids = set(Player.objects.values_list('participant_id', flat=True))
+        session_ids = set(Subsession.objects.values_list('session_id', flat=True))
 
-        # create final data by filling all-empty columns with None values
-        n_values = len(next(iter(coldata.values())))
-        coldata_full = OrderedDict()
-        for cname in colnames:
-            coldata_full[cname] = coldata.get(cname, [None] * n_values)
+        filter_in_sess = {'session_id__in': session_ids}
 
-        # convert to rowwise data
-        data_rowwise = columnwise_data_as_rows(coldata_full, with_header=False)
+        std_models_querysets = (
+            (Session, Session.objects.filter(id__in=session_ids), (None, None)),
+            (Subsession, Subsession.objects.filter(**filter_in_sess), ('session.id', 'subsession.session_id')),
+            (Group, Group.objects.filter(**filter_in_sess), ('subsession.id', 'group.subsession_id')),
+            (Player, Player.objects.filter(**filter_in_sess), ('group.id', 'player.group_id')),
+            (Participant, Participant.objects.filter(id__in=participant_ids), ('player.participant_id',
+                                                                                    'participant.id')),
+        )
 
-        # prepend column name header
-        rows = [colnames]
-        rows.extend(data_rowwise)
+        # create a dataframe for this app's complete data incl. custom models data
+        df = get_dataframe_from_linked_models(std_models_querysets, links_to_custom_models,
+                                              std_models_colnames, custom_models_colnames)
 
-        return rows
+        # sanitize each value
+        df = df.applymap(sanitize_pdvalue_for_csv)
+
+        return df
+
 
     @classmethod
     def get_hierarchical_data_for_app(cls, app_name, return_columns=False):
@@ -466,29 +550,20 @@ class ExportAppExtension(ExportApp):
         # build custom models' columns
         columns_for_custom_models = cls.custom_columns_builder(custom_models_conf)
 
-        # identify the links between custom models and standard models
-        custom_models_links = defaultdict(list)         # standard model name -> list of tuples
-                                                        #                        (custom model class, link field name)
-        std_models_select_related = defaultdict(list)   # standard model name -> list of lowercase custom model names
-        for model_name, conf in custom_models_conf.items():
-            model = conf['class']
+        custom_models_links = get_links_between_std_and_custom_models(custom_models_conf, for_action='export_data')
+        std_models_select_related = defaultdict(list)
+        for smodel_class, cmodels_links in custom_models_links.items():
+            smodel_lwr = smodel_class.__name__.lower()
+            for cmodel_class, _ in cmodels_links:
+                std_models_select_related[smodel_lwr].append(cmodel_class.__name__.lower())
 
-            # get the name and field instance of the link
-            link_field_name = conf['export_data']['link_with']
-            link_field = getattr(model, link_field_name)
-
-            # get the related standard oTree model
-            rel_model = link_field.field.related_model
-
-            # save to dicts
-            custom_models_links[rel_model.__name__].append((conf['class'], link_field_name + '_id'))
-            std_models_select_related[rel_model.__name__.lower()].append(model_name.lower())
 
         # create lists of IDs that will be used for the export
-        participant_ids = Player.objects.values_list('participant_id', flat=True)
-        session_ids = Subsession.objects.values_list('session_id', flat=True)
+        participant_ids = set(Player.objects.values_list('participant_id', flat=True))
+        session_ids = set(Subsession.objects.values_list('session_id', flat=True))
 
         # create standard model querysets
+        qs_participant = Participant.objects.filter(id__in=participant_ids)
         qs_player = Player.objects.filter(session_id__in=session_ids)\
             .order_by('id')\
             .select_related(*std_models_select_related.get('player', [])).values()
@@ -498,10 +573,6 @@ class ExportAppExtension(ExportApp):
             .select_related(*std_models_select_related.get('subsession', []))
 
         # create prefetch dictionaries from querysets that map IDs to subsets of the data
-
-        prefetch_participants = defaultdict(list)        # session ID -> participant rows
-        for row in Participant.objects.filter(id__in=participant_ids).values():
-            prefetch_participants[row['session_id']].append(row)
 
         prefetch_filter_ids_for_custom_models = {}   # stores IDs per standard oTree model to be used for
                                                      # custom data prefetching
@@ -520,21 +591,21 @@ class ExportAppExtension(ExportApp):
 
         # prefetch dict for custom data models
         prefetch_custom = defaultdict(dict)   # standard oTree model name -> custom model name -> data rows
-        for otree_model_name, custom_modellist_for_otree_model in custom_models_links.items():  # per oTree std. model
-            otree_model_name_lwr = otree_model_name.lower()
+        for smodel, cmodel_links in custom_models_links.items():  # per oTree std. model
+            smodel_name_lwr = smodel.__name__.lower()
 
             # IDs that occur for that model
-            filter_ids = prefetch_filter_ids_for_custom_models[otree_model_name_lwr]
+            filter_ids = prefetch_filter_ids_for_custom_models[smodel_name_lwr]
 
             # iterate per custom model
-            for model, link_field_name in custom_modellist_for_otree_model:
+            for model, link_field_name in cmodel_links:
                 # prefetch custom model objects that are linked to these oTree std. model IDs
                 filter_kwargs = {link_field_name + '__in': filter_ids}
                 custom_qs = model.objects.filter(**filter_kwargs).values()
 
                 # store to the dict
                 m = model.__name__.lower()
-                prefetch_custom[otree_model_name_lwr][m] = _rows_per_key_from_queryset(custom_qs, link_field_name)
+                prefetch_custom[smodel_name_lwr][m] = _rows_per_key_from_queryset(custom_qs, link_field_name)
 
         # build the final nested data structure
         output_nested = []
@@ -547,18 +618,7 @@ class ExportAppExtension(ExportApp):
 
             out_sess = _odict_from_row(sess, sess_cols)
 
-            # 1.1. each participant in the session
-            out_sess['__participant'] = []
-            for part in prefetch_participants[sess['id']]:
-                part_cols = columns_for_models['participant']
-
-                if 'participant' not in ordered_columns_per_model:
-                    ordered_columns_per_model['participant'] = part_cols
-
-                out_part = _odict_from_row(part, part_cols)
-                out_sess['__participant'].append(out_part)
-
-            # 1.2. each subsession in the session
+            # 1.1. each subsession in the session
             out_sess['__subsession'] = []
             for subsess in prefetch_subsess[sess['id']]:
                 subsess_cols = columns_for_models['subsession']
@@ -567,7 +627,7 @@ class ExportAppExtension(ExportApp):
 
                 out_subsess = _odict_from_row(subsess, subsess_cols)
 
-                # 1.2.1. each possible custom models connected to this subsession
+                # 1.1.1. each possible custom models connected to this subsession
                 subsess_custom_models_rows = prefetch_custom.get('subsession', {})
                 for subsess_cmodel_name, subsess_cmodel_rows in subsess_custom_models_rows.items():
                     cmodel_cols = columns_for_custom_models[subsess_cmodel_name]
@@ -577,7 +637,7 @@ class ExportAppExtension(ExportApp):
                     out_subsess['__' + subsess_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                                for cmodel_row in subsess_cmodel_rows[subsess['id']]]
 
-                # 1.2.2. each group in this subsession
+                # 1.1.2. each group in this subsession
                 out_subsess['__group'] = []
                 for grp in prefetch_group[subsess['id']]:
                     grp_cols = columns_for_models['group']
@@ -586,7 +646,7 @@ class ExportAppExtension(ExportApp):
 
                     out_grp = _odict_from_row(grp, grp_cols)
 
-                    # 1.2.2.1. each possible custom models connected to this group
+                    # 1.1.2.1. each possible custom models connected to this group
                     grp_custom_models_rows = prefetch_custom.get('group', {})
                     for grp_cmodel_name, grp_cmodel_rows in grp_custom_models_rows.items():
                         cmodel_cols = columns_for_custom_models[grp_cmodel_name]
@@ -596,19 +656,25 @@ class ExportAppExtension(ExportApp):
                         out_grp['__' + grp_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
                                                            for cmodel_row in grp_cmodel_rows[grp['id']]]
 
-                    # 1.2.2.2. each player in this group
+                    # 1.1.2.2. each player in this group
                     out_grp['__player'] = []
                     for player in prefetch_player[grp['id']]:
                         # because player.payoff is a property
                         player['payoff'] = player['_payoff']
 
-                        player_cols = columns_for_models['player']
+                        player_cols = columns_for_models['player'] + ['participant_id']
                         if 'player' not in ordered_columns_per_model:
                             ordered_columns_per_model['player'] = player_cols
 
                         out_player = _odict_from_row(player, player_cols)
 
-                        # 1.2.2.2.1. each possible custom models connected to this player
+                        # 1.1.2.2.1. participant object connected to this player
+                        participant_obj = qs_participant.get(id=out_player['participant_id'])
+                        out_player['__participant'] = _odict_from_row(participant_obj,
+                                                                      columns_for_models['participant'],
+                                                                      is_obj=True)
+
+                        # 1.1.2.2.2. each possible custom models connected to this player
                         player_custom_models_rows = prefetch_custom.get('player', {})
                         for player_cmodel_name, player_cmodel_rows in player_custom_models_rows.items():
                             cmodel_cols = columns_for_custom_models[player_cmodel_name]
@@ -655,11 +721,13 @@ class ExportAppExtension(ExportApp):
         else:
             response, file_extension = get_export_response(request, app_name)
 
-            rows = self.get_data_rows_for_app(app_name)
+            df = self.get_dataframe_for_app(app_name)
 
             if file_extension == 'xlsx':
+                rows = [df.columns]
+                rows.extend(df.values.tolist())
                 _export_xlsx(response, rows)
             else:
-                _export_csv(response, rows)
+                df.to_csv(response, index=False)
 
             return response

@@ -1,7 +1,6 @@
 import random
 
-from otree.api import Currency as c, currency_range
-from . import views, models
+from . import pages, models
 from ._builtin import Bot
 
 
@@ -11,18 +10,18 @@ def rand_val_from_choices(choices):
 
 class PlayerBot(Bot):
     def play_round(self):
-        yield (views.SurveyIntro, )
+        yield (pages.SurveyIntro, )
 
-        yield (views.SurveyPage1, {
+        yield (pages.SurveyPage1, {
             'q1_a': random.randint(18, 100),
             'q1_b': rand_val_from_choices(models.GENDER_CHOICES),
         })
 
-        yield (views.SurveyPage2, {
+        yield (pages.SurveyPage2, {
             'q2_a': rand_val_from_choices(models.YESNO_CHOICES),
             'q2_b': random.choice(('', 'foo', 'bar'))
         })
 
-        yield (views.SurveyPage3, {
+        yield (pages.SurveyPage3, {
             'q3_a': rand_val_from_choices(models.YESNO_CHOICES),
         })

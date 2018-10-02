@@ -13,7 +13,7 @@ import base64
 
 from otree.channels.consumers import ExportData, settings, logger, export_wide
 
-from .views import ExportAppExtension, _export_xlsx, _export_csv
+from .views import ExportAppExtension, _export_xlsx
 
 
 class ExportDataChannelsExtension(ExportData):
@@ -60,12 +60,12 @@ class ExportDataChannelsExtension(ExportData):
         with IOClass() as fp:
             if app_name:
                 # custom data export for this app
-                rows = ExportAppExtension.get_data_rows_for_app(app_name)
+                df = ExportAppExtension.get_dataframe_for_app(app_name)
 
                 if file_extension == 'xlsx':
-                    _export_xlsx(fp, rows)
+                    _export_xlsx(fp, df)
                 else:
-                    _export_csv(fp, rows)
+                    df.to_csv(fp, index=False)
 
                 file_name_prefix = app_name
             else:
