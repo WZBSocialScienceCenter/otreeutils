@@ -102,9 +102,11 @@ from otreeutils.admin_extensions.routing import channel_routing
 Add these lines to your `settings.py`:
 
 ```python
-ROOT_URLCONF = 'market.urls'
-CHANNEL_ROUTING = 'market.routing.channel_routing'
+ROOT_URLCONF = '<APP_PACKAGE>.urls'
+CHANNEL_ROUTING = '<APP_PACKAGE>.routing.channel_routing'
 ```
+
+Instead of `<APP_PACKAGE>` write your app's package name (e.g. "market" if your app is named "market").
 
 That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
 
