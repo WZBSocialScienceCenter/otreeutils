@@ -21,9 +21,9 @@ with open(os.path.join(here, 'README.md')) as f:
 setup(
     name=otreeutils.__title__,
     version=otreeutils.__version__,
-    description='A package with common oTree utilities',
+    description='Facilitate oTree experiment implementation with extensions for custom data models, surveys, understanding questions, timeout warnings and more.',
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     url=GITHUB_URL,
     project_urls={
         'Bug Reports': GITHUB_URL + '/issues',
