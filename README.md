@@ -53,6 +53,10 @@ If you implement custom data models and want to use otreeutils' admin extensions
 For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
 
 ```python
+from django.db.models import Model   # import Django's base Model class
+
+# ...
+
 class FruitOffer(Model):
     amount = models.IntegerField(label='Amount', min=0, initial=0)
 
