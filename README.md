@@ -53,7 +53,7 @@ If you implement custom data models and want to use otreeutils' admin extensions
 For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
 
 ```python
-from django.db.models import Model, ForeignKey   # import Django's base Model class
+from otree.db.models import Model, ForeignKey   # import base Model class and ForeignKey
 
 # ...
 
