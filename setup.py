@@ -4,7 +4,7 @@ otreeutils setuptools based setup module
 
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 import otreeutils
 
@@ -57,7 +57,7 @@ setup(
 
     keywords='otree experiments social science finance economics development',
 
-    packages=['otreeutils'],
+    packages=find_packages(exclude=['otreeutils_example*']),
     include_package_data=True,
 
     install_requires=['otree>=2.0.0', 'pandas'],

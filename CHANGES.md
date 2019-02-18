@@ -1,5 +1,9 @@
 # Changes
 
+## v0.5.1 – 2019-02-18
+
+* fixed problem with missing sub-package `otreeutils.admin_extensions`
+
 ## v0.5.0 – 2018-10-02
 
 * modified admin extensions to use pandas for data joins, removes limitation in live data viewer
