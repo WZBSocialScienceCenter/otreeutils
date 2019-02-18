@@ -70,7 +70,8 @@ class FruitOffer(Model):
         Configuration for otreeutils admin extensions.
         """
         data_view = {    # define this attribute if you want to include this model in the live data view
-            'exclude_fields': ['seller']
+            'exclude_fields': ['seller'],
+            'link_with': 'seller'
         }
         export_data = {  # define this attribute if you want to include this model in the data export
             'exclude_fields': ['seller_id'],
