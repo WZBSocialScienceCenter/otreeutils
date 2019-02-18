@@ -112,6 +112,8 @@ CHANNEL_ROUTING = '<APP_PACKAGE>.routing.channel_routing'
 
 Instead of `<APP_PACKAGE>` write your app's package name (e.g. "market" if your app is named "market").
 
+**And don't forget to edit your settings.py so that you add "otreeutils" to your INSTALLED_APPS list!**
+
 That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
 
 See also the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market) that uses custom data models.
