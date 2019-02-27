@@ -2,12 +2,36 @@
 Survey extensions that allows to define survey questions with a simple data structure and then automatically creates
 the necessary model fields and pages.
 
-Sept. 2018, Markus Konrad <markus.konrad@wzb.eu>
+March 2019, Markus Konrad <markus.konrad@wzb.eu>
 """
 
-from otree.api import BasePlayer
+from functools import partial
+
+from otree.api import BasePlayer, widgets, models
 
 from .pages import ExtendedPage
+
+
+def generate_likert_field(labels, widget=None):
+    """
+    Return a function which generates a new `IntegerField` with a Likert scale between 1 and `len(labels)`. Use
+    `widget` as selection widget (default is `RadioSelectHorizontal`).
+
+    Example with a 4-point Likert scale:
+
+    ```
+    likert_4_field = generate_likert_field("Strongly disagree", "Disagree",  "Agree", "Strongly agree")
+
+    class Player(BasePlayer):
+        q1 = likert_4_field(label = "Some question...")
+    ```
+    """
+    if not widget:
+        widget = widgets.RadioSelectHorizontal
+
+    choices = list(zip(range(1, len(labels) + 1), labels))
+
+    return partial(models.IntegerField, widget=widget, choices=choices)
 
 
 def create_player_model_for_survey(module, survey_definitions, base_cls=None):
@@ -61,6 +85,7 @@ class SurveyPage(ExtendedPage):
     """
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}
+    field_help_text = {}
 
     @classmethod
     def setup_survey(cls, player_cls, page_idx):
@@ -71,7 +96,8 @@ class SurveyPage(ExtendedPage):
 
         cls.form_fields = []
         for field_name, qdef in survey_defs['survey_fields']:
-            cls.field_labels[field_name] = qdef['text']
+            cls.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
+            cls.field_help_text[field_name] = qdef.get('help_text', '')
             cls.form_fields.append(field_name)
 
     def get_context_data(self, **kwargs):
@@ -81,6 +107,7 @@ class SurveyPage(ExtendedPage):
 
         for field_name, field in form.fields.items():
             field.label = self.field_labels[field_name]
+            field.help_text = self.field_help_text[field_name]
 
         ctx.update({
            'survey_form': form,

@@ -4,6 +4,7 @@
 
 {% block app_styles %}
 <link href="{% static 'otreeutils/understanding.css' %}" rel="stylesheet" type="text/css">
+<link href="{% static 'otreeutils/surveys.css' %}" rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block app_scripts %}
@@ -13,9 +14,17 @@
 
 {% block content %}
 
-<ul>
-    {{ survey_form.as_ul }}
-</ul>
+{{ survey_form.non_field_errors }}
+
+<div class="survey_form">
+    {% for field in survey_form %}
+        <div class="field_container">
+            {{ field.help_text|safe }}
+            <div class="field_errors">{{ field.errors }}</div>
+            <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
+        </div>
+    {% endfor %}
+</div>
 
 
 {% next_button %}
