@@ -192,6 +192,7 @@ SURVEY_DEFINITIONS = (
         ]
     },
     # ... more pages
+)
 ```
 
 Now you dynamically create the `Player` class by passing the name of the module for which it will be created (should be the `models` module of your app) and the survey definitions:
