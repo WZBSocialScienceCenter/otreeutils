@@ -210,7 +210,7 @@ You can then create the survey pages which will contain the questions for the re
 **Please note:** Unfortunately, it was not possible for me to create the page classes dynamically, so you have to define them manually here. At least the overhead is minimal, because you don't need to define any additional attributes.
  
 ```python
-# (in views.py)
+# (in pages.py)
 
 from otreeutils.surveys import SurveyPage, setup_survey_pages
 
