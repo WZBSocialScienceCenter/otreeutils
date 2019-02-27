@@ -6,6 +6,7 @@ March 2019, Markus Konrad <markus.konrad@wzb.eu>
 """
 
 from functools import partial
+from collections import OrderedDict
 
 from otree.api import BasePlayer, widgets, models
 
@@ -23,7 +24,7 @@ def generate_likert_field(labels, widget=None):
     likert_4_field = generate_likert_field("Strongly disagree", "Disagree",  "Agree", "Strongly agree")
 
     class Player(BasePlayer):
-        q1 = likert_4_field(label = "Some question...")
+        q1 = likert_4_field()
     ```
     """
     if not widget:
@@ -32,6 +33,36 @@ def generate_likert_field(labels, widget=None):
     choices = list(zip(range(1, len(labels) + 1), labels))
 
     return partial(models.IntegerField, widget=widget, choices=choices)
+
+
+def generate_likert_table(likert_labels, questions, form_name=None, help_texts=None, widget=None):
+    """
+    Generate a table with Likert scales between 1 and `len(likert_labels)` in each row for questions supplied with
+    `questions` as list of tuples (field name, field label).
+    Optionally provide `help_texts` which is a list of help texts for each question (hence must be of same length
+    as `questions`.
+    Optionally set `widget` (default is `RadioSelect`).
+    """
+    if not help_texts:
+        help_texts = [''] * len(questions)
+
+    if not widget:
+        widget = widgets.RadioSelect
+
+    if len(help_texts) != len(questions):
+        raise ValueError('Number of questions must be equal to number of help texts.')
+
+    likert_field = generate_likert_field(likert_labels, widget=widget)
+
+    fields = []
+    for (field_name, field_label), help_text in zip(questions, help_texts):
+        fields.append((field_name, {
+            'help_text': help_text,
+            'label': field_label,
+            'field': likert_field(),
+        }))
+
+    return {'form_name': form_name, 'fields': fields, 'render_type': 'table', 'header_labels': likert_labels}
 
 
 def create_player_model_for_survey(module, survey_definitions, base_cls=None):
@@ -53,8 +84,13 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
 
     # collect fields
     for survey_page in survey_definitions:
-        for field_name, qdef in survey_page['survey_fields']:
-            model_attrs[field_name] = qdef['field']
+        for fielddef in survey_page['survey_fields']:
+            if isinstance(fielddef, dict):
+                for field_name, qdef in fielddef['fields']:
+                    model_attrs[field_name] = qdef['field']
+            else:
+                field_name, qdef = fielddef
+                model_attrs[field_name] = qdef['field']
 
     # dynamically create model
     model_cls = type('Player', (base_cls, _SurveyModelMixin), model_attrs)
@@ -86,6 +122,8 @@ class SurveyPage(ExtendedPage):
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}
     field_help_text = {}
+    field_forms = {}
+    forms_opts = {}
 
     @classmethod
     def setup_survey(cls, player_cls, page_idx):
@@ -95,22 +133,51 @@ class SurveyPage(ExtendedPage):
         cls.page_title = survey_defs['page_title']
 
         cls.form_fields = []
-        for field_name, qdef in survey_defs['survey_fields']:
+
+        def add_field(cls, form_name, field_name, qdef):
             cls.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
             cls.field_help_text[field_name] = qdef.get('help_text', '')
             cls.form_fields.append(field_name)
+            cls.field_forms[field_name] = form_name
+
+        form_idx = 0
+        for fielddef in survey_defs['survey_fields']:
+            form_name = 'form%d_%d' % (page_idx, form_idx)
+
+            cls.forms_opts[form_name] = {'render_type': 'standard'}
+
+            if isinstance(fielddef, dict):
+                cls.forms_opts[form_name].update({k: v for k, v in fielddef.items()
+                                                  if k not in ('fields', 'form_name')})
+
+                for field_name, qdef in fielddef['fields']:
+                    form_name = fielddef.get('form_name', None) or form_name
+                    add_field(cls, form_name, field_name, qdef)
+
+                form_idx += 1
+            else:
+                add_field(cls, form_name, *fielddef)
 
     def get_context_data(self, **kwargs):
         ctx = super(SurveyPage, self).get_context_data(**kwargs)
 
         form = kwargs['form']
 
+        survey_forms = OrderedDict()
         for field_name, field in form.fields.items():
+            form_name = self.field_forms[field_name]
+
             field.label = self.field_labels[field_name]
             field.help_text = self.field_help_text[field_name]
 
+            if form_name not in survey_forms:
+                survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
+
+            survey_forms[form_name]['fields'].append(field_name)
+
         ctx.update({
-           'survey_form': form,
+            'base_form': form,
+            'survey_forms': survey_forms,
         })
 
         return ctx

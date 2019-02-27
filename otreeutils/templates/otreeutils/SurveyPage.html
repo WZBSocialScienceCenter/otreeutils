@@ -1,31 +1,49 @@
 {% extends 'otreeutils/ExtendedPage.html' %}
 
-{% load staticfiles otree_tags %}
+{% load staticfiles otree_tags otreeutils_tags %}
 
 {% block app_styles %}
-<link href="{% static 'otreeutils/understanding.css' %}" rel="stylesheet" type="text/css">
 <link href="{% static 'otreeutils/surveys.css' %}" rel="stylesheet" type="text/css">
 {% endblock %}
 
-{% block app_scripts %}
-<script src="{% static 'otreeutils/understanding.js' %}"></script>
-{% endblock %}
-
-
 {% block content %}
 
-{{ survey_form.non_field_errors }}
+{{ base_form.non_field_errors }}
 
-<div class="survey_form">
-    {% for field in survey_form %}
-        <div class="field_container">
-            {{ field.help_text|safe }}
-            <div class="field_errors">{{ field.errors }}</div>
-            <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
+{% for survey_form_name, survey_form in survey_forms.items %}
+    {% if survey_form.form_opts.render_type == 'table' %}
+        <table class="survey_form {{ survey_form_name }}">
+            <tr class="header">
+                <th class="first"></th>
+                {% for header_label in survey_form.form_opts.header_labels %}
+                    <th>{{ header_label }}</th>
+                {% endfor %}
+            </tr>
+            {% for field_name in survey_form.fields %}
+                {% with field=form|get_form_field:field_name %}
+                <tr>
+                    <th>{{ field.label }}</th>
+                    {% for choice in field %}
+                        <td>{{ choice.tag }}</td>
+                    {% endfor %}
+                </tr>
+                {% endwith %}
+            {% endfor %}
+        </table>
+    {% else %}
+        <div class="survey_form {{ survey_form_name }}">
+            {% for field_name in survey_form.fields %}
+                {% with field=form|get_form_field:field_name %}
+                <div class="field_container">
+                    {{ field.help_text|safe }}
+                    <div class="field_errors">{{ field.errors }}</div>
+                    <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
+                </div>
+                {% endwith %}
+            {% endfor %}
         </div>
-    {% endfor %}
-</div>
-
+    {% endif %}
+{% endfor %}
 
 {% next_button %}
 
