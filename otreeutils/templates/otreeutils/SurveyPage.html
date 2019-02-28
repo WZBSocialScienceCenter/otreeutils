@@ -11,6 +11,13 @@
 {{ base_form.non_field_errors }}
 
 {% for survey_form_name, survey_form in survey_forms.items %}
+    <div class="survey_form_container">
+    {% if survey_form.form_opts.form_help_initial %}
+        <div class="survey_form_help_initial">
+            {{ survey_form.form_opts.form_help_initial|safe }}
+        </div>
+    {% endif %}
+
     {% if survey_form.form_opts.render_type == 'table' %}
         <table class="survey_form {{ survey_form_name }}">
             <tr class="header">
@@ -43,6 +50,13 @@
             {% endfor %}
         </div>
     {% endif %}
+
+    {% if survey_form.form_opts.form_help_final %}
+        <div class="survey_form_help_final">
+            {{ survey_form.form_opts.form_help_final|safe }}
+        </div>
+    {% endif %}
+    </div>
 {% endfor %}
 
 {% next_button %}

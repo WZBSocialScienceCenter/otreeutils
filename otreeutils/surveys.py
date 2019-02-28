@@ -35,7 +35,7 @@ def generate_likert_field(labels, widget=None):
     return partial(models.IntegerField, widget=widget, choices=choices)
 
 
-def generate_likert_table(likert_labels, questions, form_name=None, help_texts=None, widget=None):
+def generate_likert_table(likert_labels, questions, form_name=None, help_texts=None, widget=None, **kwargs):
     """
     Generate a table with Likert scales between 1 and `len(likert_labels)` in each row for questions supplied with
     `questions` as list of tuples (field name, field label).
@@ -62,7 +62,10 @@ def generate_likert_table(likert_labels, questions, form_name=None, help_texts=N
             'field': likert_field(),
         }))
 
-    return {'form_name': form_name, 'fields': fields, 'render_type': 'table', 'header_labels': likert_labels}
+    form_def = {'form_name': form_name, 'fields': fields, 'render_type': 'table', 'header_labels': likert_labels}
+    form_def.update(dict(**kwargs))
+
+    return form_def
 
 
 def create_player_model_for_survey(module, survey_definitions, base_cls=None):
@@ -119,6 +122,11 @@ class SurveyPage(ExtendedPage):
     Common base class for survey pages.
     Displays a form for the survey questions that were defined for this page.
     """
+    FORM_OPTS_DEFAULT = {
+        'render_type': 'standard',
+        'form_help_initial': '',
+        'form_help_final': '',
+    }
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}
     field_help_text = {}
@@ -144,7 +152,7 @@ class SurveyPage(ExtendedPage):
         for fielddef in survey_defs['survey_fields']:
             form_name = 'form%d_%d' % (page_idx, form_idx)
 
-            cls.forms_opts[form_name] = {'render_type': 'standard'}
+            cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
 
             if isinstance(fielddef, dict):
                 cls.forms_opts[form_name].update({k: v for k, v in fielddef.items()
