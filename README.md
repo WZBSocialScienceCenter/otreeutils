@@ -219,7 +219,7 @@ likert_5_labels = (
     'Disagree',                     # value: 2
     'Neither agree nor disagree',   # ...
     'Agree',
-    'Strong agree'                  # value: 5
+    'Strongly agree'                  # value: 5
 )
 
 likert_5point_field = generate_likert_field(likert_5_labels)
