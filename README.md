@@ -57,7 +57,7 @@ If you implement custom data models and want to use otreeutils' admin extensions
 For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
 
 ```python
-from django.db.models import Model, ForeignKey   # import Django's base Model class
+from otree.db.models import Model, ForeignKey   # import base Model class and ForeignKey
 
 # ...
 
@@ -74,7 +74,8 @@ class FruitOffer(Model):
         Configuration for otreeutils admin extensions.
         """
         data_view = {    # define this attribute if you want to include this model in the live data view
-            'exclude_fields': ['seller']
+            'exclude_fields': ['seller'],
+            'link_with': 'seller'
         }
         export_data = {  # define this attribute if you want to include this model in the data export
             'exclude_fields': ['seller_id'],
@@ -115,6 +116,8 @@ CHANNEL_ROUTING = '<APP_PACKAGE>.routing.channel_routing'
 ```
 
 Instead of `<APP_PACKAGE>` write your app's package name (e.g. "market" if your app is named "market").
+
+**And don't forget to edit your settings.py so that you add "otreeutils" to your INSTALLED_APPS list!**
 
 That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
 
@@ -193,6 +196,7 @@ SURVEY_DEFINITIONS = (
         ]
     },
     # ... more pages
+)
 ```
 
 Now you dynamically create the `Player` class by passing the name of the module for which it will be created (should be the `models` module of your app) and the survey definitions:
@@ -232,7 +236,7 @@ You can then create the survey pages which will contain the questions for the re
 **Please note:** Unfortunately, it was not possible for me to create the page classes dynamically, so you have to define them manually here. At least the overhead is minimal, because you don't need to define any additional attributes.
  
 ```python
-# (in views.py)
+# (in pages.py)
 
 from otreeutils.surveys import SurveyPage, setup_survey_pages
 
