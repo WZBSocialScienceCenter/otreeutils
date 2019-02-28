@@ -1,6 +1,6 @@
 # otreeutils
 
-October 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+February 2019, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
 ## A package with common oTree utilities
 
@@ -227,13 +227,66 @@ likert_5point_field = generate_likert_field(likert_5_labels)
 
 The object `likert_5point_field` is now a *function* to generate new fields of the specified Likert scale:
 
+```python
+# ...
 
+SURVEY_DEFINITIONS = (
+    {
+        'page_title': 'A Likert 5-point scale example',
+        'survey_fields': [
+            ('q_otree_surveys', {  # most of the time, you'd add a "help_text" for a Likert scale question. You can use HTML:
+                'help_text': """
+                    <p>Consider this quote:</p>
+                    <blockquote>
+                        "oTree is great to make surveys, too."
+                    </blockquote>
+                    <p>What do you think?</p>
+                """,
+                'field': likert_5point_field(),   # don't forget the parentheses at the end!
+            }),
+            ('q_just_likert', {
+                 'label': 'Another Likert scale input:',  # optional, no HTML
+                 'field': likert_5point_field(),  # don't forget the parentheses at the end!
+            }),
+        ]
+    },
+    # ... more pages
+)
+```
+
+The function `generate_likert_table` allows you to easily generate a table of Likert scale inputs like a matrix with the Likert scale increments in the columns and your questions in the rows:
+
+```python
+# ...
+
+SURVEY_DEFINITIONS = (
+    {
+        'page_title': 'A Likert scale table example',
+        'survey_fields': [
+            # create a table of Likert scale choices
+            # we use the same 5-point scale a before and specify four rows for the table,
+            # each with a tuple (field name, label)
+            generate_likert_table(likert_5_labels,
+                                  [
+                                      ('q_pizza_tasty', 'Tasty'),
+                                      ('q_pizza_spicy', 'Spicy'),
+                                      ('q_pizza_cold', 'Too cold'),
+                                      ('q_pizza_satiable', 'Satiable'),
+                                  ],
+                                  form_help_initial='<p>How was your latest Pizza?</p>',  # HTML to be placed on top of form
+                                  form_help_final='<p>Thank you!</p>'                     # HTML to be placed below form
+            )
+        ]
+    },
+    # ... more pages
+)
+```
 
 #### `SurveyPage` class
 
 You can then create the survey pages which will contain the questions for the respective pages as defined before in `SURVEY_DEFINITIONS`:
  
-**Please note:** Unfortunately, it was not possible for me to create the page classes dynamically, so you have to define them manually here. At least the overhead is minimal, because you don't need to define any additional attributes.
+**Please note:** Unfortunately, it was not possible for me to create the page classes dynamically, so you have to define them manually here. At least the overhead is minimal, because you don't need to define any additional attributes. However, this way you *can* also specify additional attributes, set a custom template, etc.
  
 ```python
 # (in pages.py)
@@ -281,6 +334,8 @@ page_sequence.extend(survey_pages)
 # we could add more pages after the survey here
 # ...
 ```
+
+Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).  
 
 ## License
 
