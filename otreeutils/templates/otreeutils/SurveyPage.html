@@ -29,7 +29,11 @@
             {% for field_name in survey_form.fields %}
                 {% with field=form|get_form_field:field_name %}
                 <tr>
-                    <th>{{ field.label }}</th>
+                    <th>
+                        {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                        {{ field.label_tag }}
+                        {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                    </th>
                     {% for choice in field %}
                         <td>{{ choice.tag }}</td>
                     {% endfor %}
@@ -42,9 +46,10 @@
             {% for field_name in survey_form.fields %}
                 {% with field=form|get_form_field:field_name %}
                 <div class="field_container">
-                    {{ field.help_text|safe }}
+                    {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
                     <div class="field_errors">{{ field.errors }}</div>
                     <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
+                    {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
                 </div>
                 {% endwith %}
             {% endfor %}

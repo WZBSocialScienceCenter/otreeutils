@@ -86,14 +86,18 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
     }
 
     # collect fields
+    def add_field(field_name, qdef):
+        if field_name in model_attrs:
+            raise ValueError('duplicate field name: `%s`' % field_name)
+        model_attrs[field_name] = qdef['field']
+
     for survey_page in survey_definitions:
         for fielddef in survey_page['survey_fields']:
             if isinstance(fielddef, dict):
                 for field_name, qdef in fielddef['fields']:
-                    model_attrs[field_name] = qdef['field']
+                    add_field(field_name, qdef)
             else:
-                field_name, qdef = fielddef
-                model_attrs[field_name] = qdef['field']
+                add_field(*fielddef)
 
     # dynamically create model
     model_cls = type('Player', (base_cls, _SurveyModelMixin), model_attrs)
@@ -130,6 +134,7 @@ class SurveyPage(ExtendedPage):
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}
     field_help_text = {}
+    field_help_text_below = {}
     field_forms = {}
     forms_opts = {}
 
@@ -145,25 +150,27 @@ class SurveyPage(ExtendedPage):
         def add_field(cls, form_name, field_name, qdef):
             cls.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
             cls.field_help_text[field_name] = qdef.get('help_text', '')
+            cls.field_help_text_below[field_name] = qdef.get('help_text_below', False)
             cls.form_fields.append(field_name)
             cls.field_forms[field_name] = form_name
 
         form_idx = 0
         for fielddef in survey_defs['survey_fields']:
-            form_name = 'form%d_%d' % (page_idx, form_idx)
-
-            cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
+            form_name_default = 'form%d_%d' % (page_idx, form_idx)
 
             if isinstance(fielddef, dict):
+                form_name = fielddef.get('form_name', None) or form_name_default
+                cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 cls.forms_opts[form_name].update({k: v for k, v in fielddef.items()
                                                   if k not in ('fields', 'form_name')})
 
                 for field_name, qdef in fielddef['fields']:
-                    form_name = fielddef.get('form_name', None) or form_name
                     add_field(cls, form_name, field_name, qdef)
 
                 form_idx += 1
             else:
+                form_name = form_name_default
+                cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 add_field(cls, form_name, *fielddef)
 
     def get_context_data(self, **kwargs):
@@ -176,7 +183,7 @@ class SurveyPage(ExtendedPage):
             form_name = self.field_forms[field_name]
 
             field.label = self.field_labels[field_name]
-            field.help_text = self.field_help_text[field_name]
+            field.help_text = (self.field_help_text_below[field_name], self.field_help_text[field_name])
 
             if form_name not in survey_forms:
                 survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
