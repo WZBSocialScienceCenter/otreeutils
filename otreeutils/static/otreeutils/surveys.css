@@ -1,0 +1,30 @@
+div.survey_form .field_container {
+    margin-bottom: 2em;
+}
+
+table.survey_form {
+    border-collapse: collapse;
+}
+
+table.survey_form .form-check-input {
+    position: static;
+    margin: 0;
+}
+
+table.survey_form th {
+    padding: 0 0.5em 0 0.5em;
+}
+
+table.survey_form tr.header th {
+    border-left: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+table.survey_form tr.header th.first {
+    border-left: none;
+}
+
+table.survey_form td {
+    text-align: center;
+    border-left: 1px solid black;
+}

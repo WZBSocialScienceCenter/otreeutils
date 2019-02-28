@@ -1,5 +1,14 @@
 # Changes
 
+## v0.6.0 – 2019-02-28
+
+* added new features to `otreeutils.surveys`:
+    * `generate_likert_field` to easily create Likert scale fields from given labels
+    * `generate_likert_table` to easily create a table of Likert scale inputs
+    * ability to add `help_text` for each question field as HTML
+    * ability to split questions into several forms
+    * easier survey forms styling via CSS due to more structured HTML output  
+
 ## v0.5.1 – 2019-02-18
 
 * fixed problem with missing sub-package `otreeutils.admin_extensions`
