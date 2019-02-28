@@ -12,3 +12,4 @@ otreeutils.egg-info/
 Makefile
 __temp_static_root/
 .cache/
+__temp_migrations/
