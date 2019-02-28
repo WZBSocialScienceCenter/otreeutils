@@ -75,11 +75,11 @@ SURVEY_DEFINITIONS = (
         'survey_fields': [
             ('q_otree_surveys', {  # most of the time, you'd add a "help_text" for a Likert scale question. You can use HTML:
                 'help_text': """
-                <p>Consider this quote:</p>
-                <blockquote>
-                    "oTree is great to make surveys, too."
-                </blockquote>
-                <p>What do you think?</p>
+                    <p>Consider this quote:</p>
+                    <blockquote>
+                        "oTree is great to make surveys, too."
+                    </blockquote>
+                    <p>What do you think?</p>
                 """,
                 'field': likert_5point_field(),   # don't forget the parentheses at the end!
             }),
@@ -91,7 +91,7 @@ SURVEY_DEFINITIONS = (
     },
     {
         'page_title': 'Survey Questions - Page 3 - Several forms',
-        'survey_fields': [   # you can also split into questions into several forms for better CSS styling
+        'survey_fields': [   # you can also split questions into several forms for better CSS styling
             {                # you need to provide a dict then. you can add more keys to the dict which are then available in the template
                 'form_name': 'first_form',   # optional, can be used for CSS styling
                 'fields': [
