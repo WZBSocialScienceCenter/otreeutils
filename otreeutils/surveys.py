@@ -143,6 +143,7 @@ class SurveyPage(ExtendedPage):
     field_help_text_below = {}
     field_forms = {}
     forms_opts = {}
+    form_label_suffix = ':'
 
     @classmethod
     def setup_survey(cls, player_cls, page_idx):
@@ -150,17 +151,24 @@ class SurveyPage(ExtendedPage):
         survey_defs = player_cls.get_survey_definitions()[page_idx]
         cls.form_model = player_cls
         cls.page_title = survey_defs['page_title']
+        cls.form_label_suffix = survey_defs.get('form_label_suffix', ':')
 
+        cls.field_labels = {}
+        cls.field_help_text = {}
+        cls.field_help_text_below = {}
+        cls.field_forms = {}
+        cls.forms_opts = {}
         cls.form_fields = []
 
-        def add_field(cls, form_name, field_name, qdef):
-            cls.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
-            cls.field_help_text[field_name] = qdef.get('help_text', '')
-            cls.field_help_text_below[field_name] = qdef.get('help_text_below', False)
-            cls.form_fields.append(field_name)
-            cls.field_forms[field_name] = form_name
+        def add_field(cls_, form_name, field_name, qdef):
+            cls_.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
+            cls_.field_help_text[field_name] = qdef.get('help_text', '')
+            cls_.field_help_text_below[field_name] = qdef.get('help_text_below', False)
+            cls_.form_fields.append(field_name)
+            cls_.field_forms[field_name] = form_name
 
         form_idx = 0
+        form_name = None
         for fielddef in survey_defs['survey_fields']:
             form_name_default = 'form%d_%d' % (page_idx, form_idx)
 
@@ -177,9 +185,12 @@ class SurveyPage(ExtendedPage):
 
                 form_idx += 1
             else:
-                form_name = form_name_default
-                if form_name in cls.forms_opts.keys():
-                    raise ValueError('form with name `%s` already exists in survey form options definition' % form_name)
+                if form_name is None:
+                    form_name = form_name_default
+                    if form_name in cls.forms_opts.keys():
+                        raise ValueError('form with name `%s` already exists in survey form options definition'
+                                         % form_name)
+
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 add_field(cls, form_name, *fielddef)
 
@@ -187,6 +198,7 @@ class SurveyPage(ExtendedPage):
         ctx = super(SurveyPage, self).get_context_data(**kwargs)
 
         form = kwargs['form']
+        form.label_suffix = self.form_label_suffix
 
         survey_forms = OrderedDict()
         for field_name, field in form.fields.items():
