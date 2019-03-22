@@ -219,7 +219,7 @@ likert_5_labels = (
     'Disagree',                     # value: 2
     'Neither agree nor disagree',   # ...
     'Agree',
-    'Strong agree'                  # value: 5
+    'Strongly agree'                  # value: 5
 )
 
 likert_5point_field = generate_likert_field(likert_5_labels)
@@ -336,6 +336,12 @@ page_sequence.extend(survey_pages)
 ```
 
 Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).  
+
+## Citation
+
+Please cite as:
+
+[Konrad, M. (2018). oTree: Implementing experiments with dynamically determined data quantity. *Journal of Behavioral and Experimental Finance.*](https://doi.org/10.1016/j.jbef.2018.10.006)
 
 ## License
 
