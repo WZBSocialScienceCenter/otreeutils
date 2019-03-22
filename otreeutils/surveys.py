@@ -111,13 +111,6 @@ def create_player_model_for_survey(module, survey_definitions, other_fields=None
     return model_cls
 
 
-def create_survey_page_class(module):
-    return type('SurveyPage', (_SurveyPage,), {
-        '__module__': module,
-        'forms_opts': {}
-    })
-
-
 class _SurveyModelMixin(object):
     """Little mix-in for dynamically generated survey model classes"""
     @classmethod
@@ -134,7 +127,7 @@ def setup_survey_pages(form_model, survey_pages):
         page.setup_survey(form_model, i)   # call setup function with model class and page index
 
 
-class _SurveyPage(ExtendedPage):
+class SurveyPage(ExtendedPage):
     """
     Common base class for survey pages.
     Displays a form for the survey questions that were defined for this page.
@@ -149,6 +142,7 @@ class _SurveyPage(ExtendedPage):
     field_help_text = {}
     field_help_text_below = {}
     field_forms = {}
+    forms_opts = {}
 
     @classmethod
     def setup_survey(cls, player_cls, page_idx):
