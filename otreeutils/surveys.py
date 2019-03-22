@@ -68,7 +68,7 @@ def generate_likert_table(likert_labels, questions, form_name=None, help_texts=N
     return form_def
 
 
-def create_player_model_for_survey(module, survey_definitions, base_cls=None):
+def create_player_model_for_survey(module, survey_definitions, other_fields=None):
     """
     Dynamically create a player model in module <module> with a survey definitions and a base player class.
     Parameter survey_definitions is a list, where each list item is a survey definition for a single page.
@@ -77,8 +77,11 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
 
     Returns the dynamically created player model with the respective fields (class attributes).
     """
-    if base_cls is None:
-        base_cls = BasePlayer
+    if other_fields is None:
+        other_fields = {}
+    else:
+        if not isinstance(other_fields, dict):
+            raise ValueError('`other_fields` must be a dict with field name to field object mapping')
 
     model_attrs = {
         '__module__': module,
@@ -99,10 +102,20 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
             else:
                 add_field(*fielddef)
 
+    # add optional fields
+    model_attrs.update(other_fields)
+
     # dynamically create model
-    model_cls = type('Player', (base_cls, _SurveyModelMixin), model_attrs)
+    model_cls = type('Player', (BasePlayer, _SurveyModelMixin), model_attrs)
 
     return model_cls
+
+
+def create_survey_page_class(module):
+    return type('SurveyPage', (_SurveyPage,), {
+        '__module__': module,
+        'forms_opts': {}
+    })
 
 
 class _SurveyModelMixin(object):
@@ -121,7 +134,7 @@ def setup_survey_pages(form_model, survey_pages):
         page.setup_survey(form_model, i)   # call setup function with model class and page index
 
 
-class SurveyPage(ExtendedPage):
+class _SurveyPage(ExtendedPage):
     """
     Common base class for survey pages.
     Displays a form for the survey questions that were defined for this page.
@@ -136,7 +149,6 @@ class SurveyPage(ExtendedPage):
     field_help_text = {}
     field_help_text_below = {}
     field_forms = {}
-    forms_opts = {}
 
     @classmethod
     def setup_survey(cls, player_cls, page_idx):
@@ -160,6 +172,8 @@ class SurveyPage(ExtendedPage):
 
             if isinstance(fielddef, dict):
                 form_name = fielddef.get('form_name', None) or form_name_default
+                if form_name in cls.forms_opts.keys():
+                    raise ValueError('form with name `%s` already exists in survey form options definition' % form_name)
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 cls.forms_opts[form_name].update({k: v for k, v in fielddef.items()
                                                   if k not in ('fields', 'form_name')})
@@ -170,6 +184,8 @@ class SurveyPage(ExtendedPage):
                 form_idx += 1
             else:
                 form_name = form_name_default
+                if form_name in cls.forms_opts.keys():
+                    raise ValueError('form with name `%s` already exists in survey form options definition' % form_name)
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 add_field(cls, form_name, *fielddef)
 
