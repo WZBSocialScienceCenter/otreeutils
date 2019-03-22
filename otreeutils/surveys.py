@@ -68,7 +68,7 @@ def generate_likert_table(likert_labels, questions, form_name=None, help_texts=N
     return form_def
 
 
-def create_player_model_for_survey(module, survey_definitions, base_cls=None):
+def create_player_model_for_survey(module, survey_definitions, other_fields=None):
     """
     Dynamically create a player model in module <module> with a survey definitions and a base player class.
     Parameter survey_definitions is a list, where each list item is a survey definition for a single page.
@@ -77,8 +77,11 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
 
     Returns the dynamically created player model with the respective fields (class attributes).
     """
-    if base_cls is None:
-        base_cls = BasePlayer
+    if other_fields is None:
+        other_fields = {}
+    else:
+        if not isinstance(other_fields, dict):
+            raise ValueError('`other_fields` must be a dict with field name to field object mapping')
 
     model_attrs = {
         '__module__': module,
@@ -99,8 +102,11 @@ def create_player_model_for_survey(module, survey_definitions, base_cls=None):
             else:
                 add_field(*fielddef)
 
+    # add optional fields
+    model_attrs.update(other_fields)
+
     # dynamically create model
-    model_cls = type('Player', (base_cls, _SurveyModelMixin), model_attrs)
+    model_cls = type('Player', (BasePlayer, _SurveyModelMixin), model_attrs)
 
     return model_cls
 
@@ -137,6 +143,7 @@ class SurveyPage(ExtendedPage):
     field_help_text_below = {}
     field_forms = {}
     forms_opts = {}
+    form_label_suffix = ':'
 
     @classmethod
     def setup_survey(cls, player_cls, page_idx):
@@ -144,22 +151,31 @@ class SurveyPage(ExtendedPage):
         survey_defs = player_cls.get_survey_definitions()[page_idx]
         cls.form_model = player_cls
         cls.page_title = survey_defs['page_title']
+        cls.form_label_suffix = survey_defs.get('form_label_suffix', ':')
 
+        cls.field_labels = {}
+        cls.field_help_text = {}
+        cls.field_help_text_below = {}
+        cls.field_forms = {}
+        cls.forms_opts = {}
         cls.form_fields = []
 
-        def add_field(cls, form_name, field_name, qdef):
-            cls.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
-            cls.field_help_text[field_name] = qdef.get('help_text', '')
-            cls.field_help_text_below[field_name] = qdef.get('help_text_below', False)
-            cls.form_fields.append(field_name)
-            cls.field_forms[field_name] = form_name
+        def add_field(cls_, form_name, field_name, qdef):
+            cls_.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
+            cls_.field_help_text[field_name] = qdef.get('help_text', '')
+            cls_.field_help_text_below[field_name] = qdef.get('help_text_below', False)
+            cls_.form_fields.append(field_name)
+            cls_.field_forms[field_name] = form_name
 
         form_idx = 0
+        form_name = None
         for fielddef in survey_defs['survey_fields']:
             form_name_default = 'form%d_%d' % (page_idx, form_idx)
 
             if isinstance(fielddef, dict):
                 form_name = fielddef.get('form_name', None) or form_name_default
+                if form_name in cls.forms_opts.keys():
+                    raise ValueError('form with name `%s` already exists in survey form options definition' % form_name)
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 cls.forms_opts[form_name].update({k: v for k, v in fielddef.items()
                                                   if k not in ('fields', 'form_name')})
@@ -169,7 +185,12 @@ class SurveyPage(ExtendedPage):
 
                 form_idx += 1
             else:
-                form_name = form_name_default
+                if form_name is None:
+                    form_name = form_name_default
+                    if form_name in cls.forms_opts.keys():
+                        raise ValueError('form with name `%s` already exists in survey form options definition'
+                                         % form_name)
+
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
                 add_field(cls, form_name, *fielddef)
 
@@ -177,6 +198,7 @@ class SurveyPage(ExtendedPage):
         ctx = super(SurveyPage, self).get_context_data(**kwargs)
 
         form = kwargs['form']
+        form.label_suffix = self.form_label_suffix
 
         survey_forms = OrderedDict()
         for field_name, field in form.fields.items():
