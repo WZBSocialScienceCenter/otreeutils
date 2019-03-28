@@ -28,3 +28,17 @@ table.survey_form td {
     text-align: center;
     border-left: 1px solid black;
 }
+
+table.survey_form th,
+table.survey_form td {
+    padding: 0.4em 0.2em 0 0.2em;
+}
+
+table.survey_form tr.even {
+    background: lightgray;
+}
+
+table.survey_form tr.odd:hover,
+table.survey_form tr.even:hover {
+    background: aliceblue;
+}

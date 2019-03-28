@@ -11,56 +11,56 @@
 {{ base_form.non_field_errors }}
 
 {% for survey_form_name, survey_form in survey_forms.items %}
-    <div class="survey_form_container">
-    {% if survey_form.form_opts.form_help_initial %}
-        <div class="survey_form_help_initial">
-            {{ survey_form.form_opts.form_help_initial|safe }}
-        </div>
-    {% endif %}
+    <div class="survey_form_container {{ survey_form_name }}">
+        {% if survey_form.form_opts.form_help_initial %}
+            <div class="survey_form_help_initial">
+                {{ survey_form.form_opts.form_help_initial|safe }}
+            </div>
+        {% endif %}
 
-    {% if survey_form.form_opts.render_type == 'table' %}
-        <table class="survey_form {{ survey_form_name }}">
-            <tr class="header">
-                <th class="first"></th>
-                {% for header_label in survey_form.form_opts.header_labels %}
-                    <th>{{ header_label }}</th>
-                {% endfor %}
-            </tr>
-            {% for field_name in survey_form.fields %}
-                {% with field=form|get_form_field:field_name %}
-                <tr>
-                    <th>
-                        {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                        {{ field.label_tag }}
-                        {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                    </th>
-                    {% for choice in field %}
-                        <td>{{ choice.tag }}</td>
+        {% if survey_form.form_opts.render_type == 'table' %}
+            <table class="survey_form">
+                <tr class="header">
+                    <th class="first"></th>
+                    {% for header_label in survey_form.form_opts.header_labels %}
+                        <th>{{ header_label }}</th>
                     {% endfor %}
                 </tr>
-                {% endwith %}
-            {% endfor %}
-        </table>
-    {% else %}
-        <div class="survey_form {{ survey_form_name }}">
-            {% for field_name in survey_form.fields %}
-                {% with field=form|get_form_field:field_name %}
-                <div class="field_container">
-                    {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                    <div class="field_errors">{{ field.errors }}</div>
-                    <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
-                    {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                </div>
-                {% endwith %}
-            {% endfor %}
-        </div>
-    {% endif %}
+                {% for field_name in survey_form.fields %}
+                    {% with field=form|get_form_field:field_name %}
+                    <tr class="{% cycle 'odd' 'even' %}">
+                        <th>
+                            {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                            {{ field.label_tag }}
+                            {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                        </th>
+                        {% for choice in field %}
+                            <td>{{ choice.tag }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endwith %}
+                {% endfor %}
+            </table>
+        {% else %}
+            <div class="survey_form">
+                {% for field_name in survey_form.fields %}
+                    {% with field=form|get_form_field:field_name %}
+                    <div class="field_container">
+                        {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                        <div class="field_errors">{{ field.errors }}</div>
+                        <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
+                        {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% endif %}
 
-    {% if survey_form.form_opts.form_help_final %}
-        <div class="survey_form_help_final">
-            {{ survey_form.form_opts.form_help_final|safe }}
-        </div>
-    {% endif %}
+        {% if survey_form.form_opts.form_help_final %}
+            <div class="survey_form_help_final">
+                {{ survey_form.form_opts.form_help_final|safe }}
+            </div>
+        {% endif %}
     </div>
 {% endfor %}
 
