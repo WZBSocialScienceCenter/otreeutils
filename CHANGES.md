@@ -1,5 +1,13 @@
 # Changes
 
+
+## v0.7.0 – 2019-??-??
+
+* corrections for use of survey module in several apps
+* option to specify form label suffix
+* alternating row colors and hover for likert table
+
+
 ## v0.6.0 – 2019-02-28
 
 * added new features to `otreeutils.surveys`:
