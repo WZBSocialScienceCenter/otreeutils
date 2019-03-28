@@ -4,6 +4,7 @@ div.survey_form .field_container {
 
 table.survey_form {
     border-collapse: collapse;
+    margin-bottom: 2em;
 }
 
 table.survey_form .form-check-input {

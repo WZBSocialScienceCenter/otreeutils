@@ -30,12 +30,12 @@
                     {% with field=form|get_form_field:field_name %}
                     <tr class="{% cycle 'odd' 'even' %}">
                         <th>
-                            {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                            {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                             {{ field.label_tag }}
-                            {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                            {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                         </th>
                         {% for choice in field %}
-                            <td>{{ choice.tag }}</td>
+                            <td>{{ field.help_text.input_prefix|safe }} {{ choice.tag }} {{ field.help_text.input_suffix|safe }}</td>
                         {% endfor %}
                     </tr>
                     {% endwith %}
@@ -46,10 +46,10 @@
                 {% for field_name in survey_form.fields %}
                     {% with field=form|get_form_field:field_name %}
                     <div class="field_container">
-                        {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                        {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                         <div class="field_errors">{{ field.errors }}</div>
-                        <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
-                        {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
+                        <div class="field_label_and_input">{{ field.label_tag }} {{ field.help_text.input_prefix|safe }} {{ field }} {{ field.help_text.input_suffix|safe }}</div>
+                        {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                     </div>
                     {% endwith %}
                 {% endfor %}

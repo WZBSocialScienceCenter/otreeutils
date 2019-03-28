@@ -141,6 +141,8 @@ class SurveyPage(ExtendedPage):
     field_labels = {}
     field_help_text = {}
     field_help_text_below = {}
+    field_input_prefix = {}
+    field_input_suffix = {}
     field_forms = {}
     forms_opts = {}
     form_label_suffix = ':'
@@ -156,6 +158,8 @@ class SurveyPage(ExtendedPage):
         cls.field_labels = {}
         cls.field_help_text = {}
         cls.field_help_text_below = {}
+        cls.field_input_prefix = {}
+        cls.field_input_suffix = {}
         cls.field_forms = {}
         cls.forms_opts = {}
         cls.form_fields = []
@@ -164,6 +168,8 @@ class SurveyPage(ExtendedPage):
             cls_.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
             cls_.field_help_text[field_name] = qdef.get('help_text', '')
             cls_.field_help_text_below[field_name] = qdef.get('help_text_below', False)
+            cls_.field_input_prefix[field_name] = qdef.get('input_prefix', '')
+            cls_.field_input_suffix[field_name] = qdef.get('input_suffix', '')
             cls_.form_fields.append(field_name)
             cls_.field_forms[field_name] = form_name
 
@@ -205,7 +211,12 @@ class SurveyPage(ExtendedPage):
             form_name = self.field_forms[field_name]
 
             field.label = self.field_labels[field_name]
-            field.help_text = (self.field_help_text_below[field_name], self.field_help_text[field_name])
+            field.help_text = {  # abusing the help text attribute here for arbitrary field options
+                'help_text': self.field_help_text[field_name],
+                'help_text_below': self.field_help_text_below[field_name],
+                'input_prefix': self.field_input_prefix[field_name],
+                'input_suffix': self.field_input_suffix[field_name],
+            }
 
             if form_name not in survey_forms:
                 survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
