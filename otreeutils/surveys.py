@@ -143,6 +143,8 @@ class SurveyPage(ExtendedPage):
     field_help_text_below = {}
     field_input_prefix = {}
     field_input_suffix = {}
+    field_widget_attrs = {}
+    field_condition_javascript = {}
     field_forms = {}
     forms_opts = {}
     form_label_suffix = ':'
@@ -153,13 +155,15 @@ class SurveyPage(ExtendedPage):
         survey_defs = player_cls.get_survey_definitions()[page_idx]
         cls.form_model = player_cls
         cls.page_title = survey_defs['page_title']
-        cls.form_label_suffix = survey_defs.get('form_label_suffix', ':')
+        cls.form_label_suffix = survey_defs.get('form_label_suffix', '')
 
         cls.field_labels = {}
         cls.field_help_text = {}
         cls.field_help_text_below = {}
         cls.field_input_prefix = {}
         cls.field_input_suffix = {}
+        cls.field_widget_attrs = {}
+        cls.field_condition_javascript = {}
         cls.field_forms = {}
         cls.forms_opts = {}
         cls.form_fields = []
@@ -170,6 +174,8 @@ class SurveyPage(ExtendedPage):
             cls_.field_help_text_below[field_name] = qdef.get('help_text_below', False)
             cls_.field_input_prefix[field_name] = qdef.get('input_prefix', '')
             cls_.field_input_suffix[field_name] = qdef.get('input_suffix', '')
+            cls_.field_widget_attrs[field_name] = qdef.get('widget_attrs', {})
+            cls_.field_condition_javascript[field_name] = qdef.get('condition_javascript', '')
             cls_.form_fields.append(field_name)
             cls_.field_forms[field_name] = form_name
 
@@ -216,7 +222,10 @@ class SurveyPage(ExtendedPage):
                 'help_text_below': self.field_help_text_below[field_name],
                 'input_prefix': self.field_input_prefix[field_name],
                 'input_suffix': self.field_input_suffix[field_name],
+                'condition_javascript': self.field_condition_javascript[field_name],
             }
+
+            field.widget.attrs.update(self.field_widget_attrs[field_name])
 
             if form_name not in survey_forms:
                 survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}

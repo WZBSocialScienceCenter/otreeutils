@@ -3,9 +3,13 @@
 
 ## v0.7.0 – 2019-??-??
 
-* corrections for use of survey module in several apps
-* option to specify form label suffix
-* alternating row colors and hover for likert table
+* several improvements in the surveys module:
+    * added `other_fields` parameter to `create_player_model_for_survey` to allow for additional (non-survey) fields
+    * corrections when using surveys module in several apps on the same server instance
+    * added option to specify conditional field display via JavaScript
+    * added option to specify form label suffix
+    * added option to specify field widget HTML attributes
+    * alternating row colors and hover for likert table
 
 
 ## v0.6.0 – 2019-02-28
