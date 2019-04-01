@@ -73,7 +73,7 @@
     });
 
     function update_form_field_display (e) {
-        console.log('update_form_field_display', e);
+        //console.log('update_form_field_display', e);
         var inp;
 
         if (e === null) {  // store defaults on first call
@@ -97,10 +97,10 @@
                         inp = $('#id_{{ field_name }}');
                         var field = inp.parent().parent();
                         if (cond) {
-                            console.log('{{ field_name }} show');
+                            //console.log('{{ field_name }} show');
                             field.show();
                         } else {
-                            console.log('{{ field_name }} hide');
+                            //console.log('{{ field_name }} hide');
                             field.hide();
                             inp.val(cond_fields_defaults['{{ field_name }}']);  // reset to default
                         }

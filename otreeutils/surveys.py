@@ -35,9 +35,10 @@ def generate_likert_field(labels, widget=None):
     return partial(models.IntegerField, widget=widget, choices=choices)
 
 
-def generate_likert_table(likert_labels, questions, form_name=None, help_texts=None, widget=None, **kwargs):
+def generate_likert_table(labels, questions, form_name=None, help_texts=None, widget=None, use_likert_scale=True,
+                          **kwargs):
     """
-    Generate a table with Likert scales between 1 and `len(likert_labels)` in each row for questions supplied with
+    Generate a table with Likert scales between 1 and `len(labels)` in each row for questions supplied with
     `questions` as list of tuples (field name, field label).
     Optionally provide `help_texts` which is a list of help texts for each question (hence must be of same length
     as `questions`.
@@ -52,17 +53,22 @@ def generate_likert_table(likert_labels, questions, form_name=None, help_texts=N
     if len(help_texts) != len(questions):
         raise ValueError('Number of questions must be equal to number of help texts.')
 
-    likert_field = generate_likert_field(likert_labels, widget=widget)
+    if use_likert_scale:
+        field_generator = generate_likert_field(labels, widget=widget)
+        header_labels = labels
+    else:
+        field_generator = partial(models.StringField, choices=labels, widget=widget or widgets.RadioSelectHorizontal)
+        header_labels = [t[1] for t in labels]
 
     fields = []
     for (field_name, field_label), help_text in zip(questions, help_texts):
         fields.append((field_name, {
             'help_text': help_text,
             'label': field_label,
-            'field': likert_field(),
+            'field': field_generator(),
         }))
 
-    form_def = {'form_name': form_name, 'fields': fields, 'render_type': 'table', 'header_labels': likert_labels}
+    form_def = {'form_name': form_name, 'fields': fields, 'render_type': 'table', 'header_labels': header_labels}
     form_def.update(dict(**kwargs))
 
     return form_def
