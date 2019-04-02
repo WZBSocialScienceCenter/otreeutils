@@ -3,13 +3,17 @@
 
 ## v0.7.0 – 2019-??-??
 
-* several improvements in the surveys module:
+* several improvements in the `surveys` module:
     * added `other_fields` parameter to `create_player_model_for_survey` to allow for additional (non-survey) fields
     * corrections when using surveys module in several apps on the same server instance
     * added option to specify conditional field display via JavaScript
     * added option to specify form label suffix
     * added option to specify field widget HTML attributes
+    * added option to use custom choices (`use_likert_scale=False`) in `generate_likert_table`
     * alternating row colors and hover for likert table
+* added new `scripts` module:
+    * properly set up your command-line scripts to work with oTree by importing the module
+    * export of hierarchical data structures from collected data 
 
 
 ## v0.6.0 – 2019-02-28
