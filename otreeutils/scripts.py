@@ -42,72 +42,7 @@ except ImportSettingsError:
 do_django_setup()
 
 
-def get_hierarchical_data_for_apps(apps):
-    """
-    Return a hierarchical data structure consisting of nested OrderedDicts for all data collected for apps listed
-    in `apps`. The format of the returned data structure is:
-
-    ```
-    {
-        <session_1_code>: {
-            'code': ...,
-            'label': ...,
-            # more session data
-            # ...
-            '__apps': {  # list of apps as requested in `apps` argument
-                <app_1_name>: [                  # list of subsessions in app 1 played in session 1
-                    {
-                        'round_number': 1,
-                        # more subsession data
-                        # ...
-                        '__group': [                 # list of groups in subsession 1 of app 1 played in session 1
-                            {
-                                'id_in_subsession': 1,
-                                # more group data
-                                # ...
-                                '__player': [            # list of players in group 1 in subsession 1 of app 1 played in session 1
-                                    {
-                                        "id_in_group": 1,
-                                        # more player data
-                                        # ...
-                                        '__participant': {   # reference to participant for this player
-                                            "id_in_session": 1,
-                                            "code": "5ilq0fad",
-                                            # more participant data
-                                            # ...
-                                        },
-                                        '__custom_model': [  # some optional custom model data connected to this player (could also be connected to group or subsession)
-                                            # custom model data
-                                        ]
-                                    }, # more players in this group
-                                ]
-                            }, # more groups in this session
-                        ]
-                    }, # more subsessions (rounds) in this app
-                ]
-            },  # more apps in this session
-        },
-        <session_2_code>: { # similar to above },
-        # ...
-    }
-    ```
-    """
-    from .admin_extensions.views import ExportAppExtension
-
-    combined = OrderedDict()
-
-    for app in apps:
-        sessions = ExportAppExtension.get_hierarchical_data_for_app(app)
-
-        for sess in sessions:
-            sesscode = sess['code']
-            if sesscode not in combined.keys():
-                combined[sesscode] = OrderedDict([(k, v) for k, v in sess.items() if k != '__subsession'])
-                combined[sesscode]['__apps'] = OrderedDict()
-
-            combined[sesscode]['__apps'][app] = sess['__subsession']
-
-    return combined
+from .admin_extensions.views import get_hierarchical_data_for_apps
 
 
 def save_data_as_json_file(data, path, **kwargs):

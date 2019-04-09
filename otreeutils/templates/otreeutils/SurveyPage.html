@@ -31,7 +31,7 @@
                     <tr class="{% cycle 'odd' 'even' %}"{% if field.help_text.condition_javascript %} style="display: none"{% endif %}>
                         <th>
                             {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
-                            {{ field.label_tag }}
+                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label }}{% endif %}
                             {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                         </th>
                         {% for choice in field %}
@@ -48,7 +48,10 @@
                     <div class="field_container"{% if field.help_text.condition_javascript %} style="display: none"{% endif %}>
                         {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                         <div class="field_errors">{{ field.errors }}</div>
-                        <div class="field_label_and_input">{{ field.label_tag }} {{ field.help_text.input_prefix|safe }} {{ field }} {{ field.help_text.input_suffix|safe }}</div>
+                        <div class="field_label_and_input">
+                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label }}{% endif %}
+                            {{ field.help_text.input_prefix|safe }} {{ field }} {{ field.help_text.input_suffix|safe }}
+                        </div>
                         {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                     </div>
                     {% endwith %}

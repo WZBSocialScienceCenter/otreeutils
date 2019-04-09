@@ -36,12 +36,13 @@ def generate_likert_field(labels, widget=None):
 
 
 def generate_likert_table(labels, questions, form_name=None, help_texts=None, widget=None, use_likert_scale=True,
-                          **kwargs):
+                          make_label_tag=False, **kwargs):
     """
     Generate a table with Likert scales between 1 and `len(labels)` in each row for questions supplied with
     `questions` as list of tuples (field name, field label).
     Optionally provide `help_texts` which is a list of help texts for each question (hence must be of same length
     as `questions`.
+    If `make_label_tag` is True, then each label is surrounded by a <label>...</label> tag, otherwise it's not.
     Optionally set `widget` (default is `RadioSelect`).
     """
     if not help_texts:
@@ -65,6 +66,7 @@ def generate_likert_table(labels, questions, form_name=None, help_texts=None, wi
         fields.append((field_name, {
             'help_text': help_text,
             'label': field_label,
+            'make_label_tag': make_label_tag,
             'field': field_generator(),
         }))
 
@@ -147,6 +149,7 @@ class SurveyPage(ExtendedPage):
     field_labels = {}
     field_help_text = {}
     field_help_text_below = {}
+    field_make_label_tag = {}
     field_input_prefix = {}
     field_input_suffix = {}
     field_widget_attrs = {}
@@ -178,6 +181,7 @@ class SurveyPage(ExtendedPage):
             cls_.field_labels[field_name] = qdef.get('text', qdef.get('label', ''))
             cls_.field_help_text[field_name] = qdef.get('help_text', '')
             cls_.field_help_text_below[field_name] = qdef.get('help_text_below', False)
+            cls_.field_make_label_tag[field_name] = qdef.get('make_label_tag', False)
             cls_.field_input_prefix[field_name] = qdef.get('input_prefix', '')
             cls_.field_input_suffix[field_name] = qdef.get('input_suffix', '')
             cls_.field_widget_attrs[field_name] = qdef.get('widget_attrs', {})
@@ -226,6 +230,7 @@ class SurveyPage(ExtendedPage):
             field.help_text = {  # abusing the help text attribute here for arbitrary field options
                 'help_text': self.field_help_text[field_name],
                 'help_text_below': self.field_help_text_below[field_name],
+                'make_label_tag': self.field_make_label_tag[field_name],
                 'input_prefix': self.field_input_prefix[field_name],
                 'input_suffix': self.field_input_suffix[field_name],
                 'condition_javascript': self.field_condition_javascript[field_name],
