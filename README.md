@@ -215,6 +215,14 @@ Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEF
 
 The attributes (model fields, etc.) will be automatically created. When you run `otree resetdb`, you will see that the fields `q1_a`, `q1_b`, etc. will be generated in the database.
 
+You may also add extra (non-survey) fields to your `Player` class, by passing a dict to the optional `other_fields` parameter:
+
+```python
+Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS, other_fields={
+    'treatment': models.IntegerField()
+})
+```
+
 ##### Likert score inputs via `generate_likert_field` and `generate_likert_table` functions
 
 The function `generate_likert_field` allows you to easily generate fields for a given Likert scale and can be used inside a survey definitions data structure:
