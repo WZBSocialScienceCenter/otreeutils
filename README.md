@@ -15,7 +15,8 @@ This repository contains the package `otreeutils`. It features a set of common h
     * define all survey questions in a single data structure, let `otreeutils` create the required `Player` fields
     * create a table of Likert scale inputs ("Likert matrix")
     * create single Likert scale fields from given labels
-    * easy survey forms styling via CSS due to cleanly structured HTML output  
+    * easy survey forms styling via CSS due to cleanly structured HTML output
+    * make survey forms with conditional inputs  
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
 * Setting custom URLs for pages (instead of default: the page's class name)
 
@@ -297,6 +298,10 @@ SURVEY_DEFINITIONS = (
     # ... more pages
 )
 ```
+
+#### More options for surveys
+
+To implement advanced features such as conditional input display, have a look at the example app `otreeutils_example2`.
 
 #### `SurveyPage` class
 

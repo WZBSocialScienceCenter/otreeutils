@@ -42,6 +42,12 @@ YESNO_CHOICES = (
     ('no', 'No'),
 )
 
+EBAY_ITEMS_PER_WEEK = (
+    ('<5', 'less than 5'),
+    ('5-10', 'between 5 and 10'),
+    ('>10', 'more than 10'),
+)
+
 # define a Likert 5-point scale with its labels
 
 likert_5_labels = (
@@ -159,6 +165,31 @@ SURVEY_DEFINITIONS = (
                     }),
                 ]
             },
+        ]
+    },
+    {
+        'page_title': 'Survey Questions - Page 6 - Conditional fields and widget adjustments',
+        'survey_fields': [
+            ('q_uses_ebay', {
+                'text': 'Do you sell things on eBay?',
+                'field': models.CharField(choices=YESNO_CHOICES),
+            }),
+            ('q_ebay_member_years', {
+                'text': 'For how many years are you an eBay member?',
+                'field': models.IntegerField(min=1, blank=True, default=None),
+                'input_suffix': 'years',                      # display suffix "years" after input box
+                'widget_attrs': {'style': 'display:inline'},  # adjust widget style
+                # set a JavaScript condition. if it evaluates to true (here: if "uses ebay" is set to "yes"),
+                # this input is shown:
+                'condition_javascript': '$("#id_q_uses_ebay").val() === "yes"'
+            }),
+            ('q_ebay_sales_per_week', {
+                'text': 'How many items do you sell on eBay per week?',
+                'field': models.CharField(choices=EBAY_ITEMS_PER_WEEK, blank=True, default=None),
+                # set a JavaScript condition. if it evaluates to true (here: if "uses ebay" is set to "yes"),
+                # this input is shown:
+                'condition_javascript': '$("#id_q_uses_ebay").val() === "yes"'
+            }),
         ]
     },
 )

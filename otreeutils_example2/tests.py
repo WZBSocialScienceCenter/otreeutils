@@ -45,3 +45,11 @@ class PlayerBot(Bot):
         yield (pages.SurveyPage5, {
             'q_treatment_%d' % self.player.treatment: rand_val_from_choices(models.YESNO_CHOICES)
         })
+
+        p6_data = {'q_uses_ebay': rand_val_from_choices(models.YESNO_CHOICES)}
+        if p6_data['q_uses_ebay'] == 'yes':
+            p6_data.update({
+                'q_ebay_member_years': random.randint(1, 10),
+                'q_ebay_sales_per_week': rand_val_from_choices(models.EBAY_ITEMS_PER_WEEK)
+            })
+        yield (pages.SurveyPage6, p6_data)
