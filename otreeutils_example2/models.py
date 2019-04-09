@@ -20,7 +20,9 @@ class Constants(BaseConstants):
 
 
 class Subsession(BaseSubsession):
-    pass
+    def creating_session(self):
+        for i, p in enumerate(self.get_players()):
+            p.treatment = (i % 2) + 1   # every second player gets treatment 2
 
 
 class Group(BaseGroup):
@@ -135,8 +137,34 @@ SURVEY_DEFINITIONS = (
                                   form_help_final='<p>Thank you!</p>'                     # HTML to be placed below form
             )
         ]
-    }
+    },
+    {
+        'page_title': 'Survey Questions - Page 5 - Forms depending on other variable',
+        'survey_fields': [  # we define two forms here ...
+            {   # ... this one is shown when player.treatment == 1 ...
+                'form_name': 'treatment_1_form',
+                'fields': [
+                    ('q_treatment_1', {
+                        'text': 'This is a question for treatment 1: Do you feel tired?',
+                        'field': models.CharField(choices=YESNO_CHOICES, blank=True),
+                    }),
+                ]
+            },
+            {   # ... this one is shown when player.treatment == 2 ...
+                'form_name': 'treatment_2_form',  # optional, can be used for CSS styling
+                'fields': [
+                    ('q_treatment_2', {
+                        'text': "This is a question for treatment 2:  Don't you feel tired?",
+                        'field': models.CharField(choices=YESNO_CHOICES, blank=True),
+                    }),
+                ]
+            },
+        ]
+    },
 )
 
 # now dynamically create the Player class from the survey definitions
-Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS)
+# we can also pass additional (non-survey) fields via `other_fields`
+Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS, other_fields={
+    'treatment': models.IntegerField()
+})

@@ -128,7 +128,7 @@ SESSION_CONFIGS = [
     {
         'name': 'otreeutils_example2',
         'display_name': 'otreeutils example 2 (Surveys)',
-        'num_demo_participants': 1,  # doesn't matter
+        'num_demo_participants': 4,  # every second player gets treatment 2
         'app_sequence': ['otreeutils_example2'],
     },
     {

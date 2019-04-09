@@ -34,6 +34,21 @@ class SurveyPage4(SurveyPage):
     pass
 
 
+class SurveyPage5(SurveyPage):
+    def get_context_data(self, **kwargs):
+#        del kwargs['form'].fields['q_treatment_%d' % remove_form]
+        ctx_data = super().get_context_data(**kwargs)
+
+        if self.player.treatment == 1:
+            remove_form = 2
+        else:
+            remove_form = 1
+
+        del ctx_data['survey_forms']['treatment_%d_form' % remove_form]
+
+        return ctx_data
+
+
 # Create a list of survey pages.
 # The order is important! The survey questions are taken in the same order
 # from the SURVEY_DEFINITIONS in models.py
@@ -43,6 +58,7 @@ survey_pages = [
     SurveyPage2,
     SurveyPage3,
     SurveyPage4,
+    SurveyPage5,
 ]
 
 # Common setup for all pages (will set the questions per page)

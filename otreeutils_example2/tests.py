@@ -41,3 +41,7 @@ class PlayerBot(Bot):
 
         likert_table_data = {'q_pizza_' + k: rand_val_from_likert() for k in likert_table_rows}
         yield (pages.SurveyPage4, likert_table_data)
+
+        yield (pages.SurveyPage5, {
+            'q_treatment_%d' % self.player.treatment: rand_val_from_choices(models.YESNO_CHOICES)
+        })
