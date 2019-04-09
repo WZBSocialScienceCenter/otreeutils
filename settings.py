@@ -121,7 +121,7 @@ SESSION_CONFIG_DEFAULTS = {
 SESSION_CONFIGS = [
     {
         'name': 'otreeutils_example1',
-        'display_name': 'otreeutils example 1 (Understanding questions, timeout warnings)',
+        'display_name': 'otreeutils example 1 (Understanding questions, timeout warnings, custom page URLs)',
         'num_demo_participants': 1,   # doesn't matter
         'app_sequence': ['otreeutils_example1'],
     },

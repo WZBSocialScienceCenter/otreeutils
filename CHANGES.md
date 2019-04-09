@@ -3,6 +3,7 @@
 
 ## v0.7.0 – 2019-??-??
 
+* added class attribute `custom_name_in_url` for `ExtendedPage`: allows to set a custom URL for a page (instead of default class name)
 * several improvements in the `surveys` module:
     * added `other_fields` parameter to `create_player_model_for_survey` to allow for additional (non-survey) fields
     * corrections when using surveys module in several apps on the same server instance

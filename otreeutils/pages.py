@@ -10,7 +10,6 @@ import settings
 from django import forms
 from django.utils.translation import ugettext as _
 
-import otree
 from otree.api import Page, WaitPage
 
 APPS_DEBUG = getattr(settings, 'APPS_DEBUG', False)
@@ -25,9 +24,37 @@ class AllGroupsWaitPage(WaitPage):
 class ExtendedPage(Page):
     """Base page class with extended functionality."""
     page_title = ''
+    custom_name_in_url = None
     timer_warning_text = None
     timeout_warning_seconds = None    # set this to enable a timeout warning -- no form submission, just a warning
     timeout_warning_message = 'Please hurry up, the time is over!'
+
+    @classmethod
+    def url_pattern(cls, name_in_url):
+        if cls.custom_name_in_url:
+            return r'^p/(?P<participant_code>\w+)/{}/{}/(?P<page_index>\d+)/$'.format(
+                name_in_url,
+                cls.custom_name_in_url,
+            )
+        else:
+            return super().url_pattern(name_in_url)
+
+    @classmethod
+    def get_url(cls, participant_code, name_in_url, page_index):
+        if cls.custom_name_in_url:
+            return r'/p/{pcode}/{name_in_url}/{custom_name_in_url}/{page_index}/'.format(
+                pcode=participant_code, name_in_url=name_in_url,
+                custom_name_in_url=cls.custom_name_in_url, page_index=page_index
+            )
+        else:
+            return super().get_url(participant_code, name_in_url, page_index)
+
+    # @classmethod
+    # def url_name(cls):
+    #     if cls.custom_name_in_url:
+    #         return cls.custom_name_in_url.replace('.', '-')
+    #     else:
+    #         return super().url_name()
 
     @classmethod
     def has_timeout_warning(cls):

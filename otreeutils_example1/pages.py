@@ -38,8 +38,13 @@ class ExtendedPageWithTimeoutWarning(ExtendedPage):
     timeout_warning_message = "You're too slow. Hurry up!"
 
 
+class PageWithCustomURLName(ExtendedPage):
+    custom_name_in_url = 'foobar'
+
+
 page_sequence = [
     SomeUnderstandingQuestions,
     AllGroupsWaitPage,
     ExtendedPageWithTimeoutWarning,
+    PageWithCustomURLName,
 ]

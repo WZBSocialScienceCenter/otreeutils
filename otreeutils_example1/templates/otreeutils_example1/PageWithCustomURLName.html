@@ -1,0 +1,20 @@
+{% extends 'otreeutils/ExtendedPage.html' %}
+
+{% load staticfiles otree_tags %}
+
+{% block content %}
+
+<p>
+    By default, oTree uses the page's class name in its URL, so since this page's class name
+    is <code>PageWithCustomURLName</code> this page's URL would be something like <code>https://.../p/.../otreeutils_example1/PageWithCustomURLName/...</code>.
+</p>
+
+<p>
+    However, sometimes you don't want to show the class name in the URL to a user, especially if it's an online experiment and the page name conveys
+    some information the user shouldn't know. You can then either rename the page class (and its template) or you simply use <code>ExtendedPage</code>
+    as base class and set the <code>custom_name_in_url = 'foobar'</code> attribute as shown in this example.
+</p>
+
+{% next_button %}
+
+{% endblock %}

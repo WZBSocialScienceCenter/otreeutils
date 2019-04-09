@@ -17,6 +17,7 @@ This repository contains the package `otreeutils`. It features a set of common h
     * create single Likert scale fields from given labels
     * easy survey forms styling via CSS due to cleanly structured HTML output  
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
+* Setting custom URLs for pages (instead of default: the page's class name)
 
 **Compatibility note:** This package is compatible with oTree v2.x. (It has been tested with oTree v2.1.36 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.1, which is the last version to support oTree 1.) 
 
@@ -139,7 +140,7 @@ It's best to have a look at the (documented) examples to see how to use the API.
 #### `ExtendedPage` class
 
 A common page extension to oTree's default `Page` class.
- All other page classes in `otreeutils` extend this class. Allows to define timeout warnings, a page title and provides a template variable `debug` with which you can toggle debug code in your templates / JavaScript parts.
+ All other page classes in `otreeutils` extend this class. Allows to define a custom page URL via `custom_name_in_url`, timeout warnings, a page title and provides a template variable `debug` with which you can toggle debug code in your templates / JavaScript parts.
 
 The template variable `debug` is toggled using an additional `APPS_DEBUG` variable in `settings.py`. See the `settings.py` of this repository. This is quite useful for example in order to fill in the correct questions on a page with understanding questions automatically in a debug session (so that it is easier to click through the pages). 
 
