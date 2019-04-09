@@ -23,6 +23,13 @@ This repository contains the package `otreeutils`. It features a set of common h
 The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
 via `pip install otreeutils`.
 
+## Citation
+
+If you used *otreeutils* in your published research, please cite it as follows:
+
+[Konrad, M. (2018). oTree: Implementing experiments with dynamically determined data quantity. *Journal of Behavioral and Experimental Finance.*](https://doi.org/10.1016/j.jbef.2018.10.006)
+
+
 ## Examples
 
 The repository contains three example apps which show the respective features and how they can be used in own experiments:
@@ -336,12 +343,6 @@ page_sequence.extend(survey_pages)
 ```
 
 Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).  
-
-## Citation
-
-Please cite as:
-
-[Konrad, M. (2018). oTree: Implementing experiments with dynamically determined data quantity. *Journal of Behavioral and Experimental Finance.*](https://doi.org/10.1016/j.jbef.2018.10.006)
 
 ## License
 

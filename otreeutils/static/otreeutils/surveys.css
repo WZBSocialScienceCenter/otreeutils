@@ -25,6 +25,10 @@ table.survey_form tr.header th.first {
     border-left: none;
 }
 
+table.survey_form tr.header th {
+    text-align: center;
+}
+
 table.survey_form td {
     text-align: center;
     border-left: 1px solid black;
