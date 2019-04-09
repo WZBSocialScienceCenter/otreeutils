@@ -1,7 +1,7 @@
 # Changes
 
 
-## v0.7.0 – 2019-??-??
+## v0.7.0 – 2019-04-09
 
 * added class attribute `custom_name_in_url` for `ExtendedPage`: allows to set a custom URL for a page (instead of default class name)
 * several improvements in the `surveys` module:

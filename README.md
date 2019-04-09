@@ -356,7 +356,42 @@ page_sequence.extend(survey_pages)
 # ...
 ```
 
-Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).  
+**Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).**  
+
+
+### `otreeutils.scripts` module
+
+This module allows creating scripts that interface with oTree from the command line. Importing `otreeutils.scripts` makes sure that everything is correctly set up and the settings are loaded. An example might be a script which exports data from the current sessions for specific apps as JSON file:
+
+```python
+import sys
+
+from otreeutils import scripts   # this is the most import line and must be included at the beginning
+
+
+if len(sys.argv) != 2:
+    print('call this script with a single argument: python %s <output.json>' % sys.argv[0])
+    exit(1)
+
+output_file = sys.argv[1]
+
+apps = ['intro',
+        'my_app',
+        'outro']
+
+print('loading data...')
+
+# get the data as hierarchical data structure. this is esp. useful if you use
+# custom data models
+combined = scripts.get_hierarchical_data_for_apps(apps)
+
+print('writing data to file', output_file)
+
+scripts.save_data_as_json_file(combined, output_file, indent=2)
+
+print('done.')
+```
+
 
 ## License
 
