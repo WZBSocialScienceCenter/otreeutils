@@ -20,7 +20,9 @@ class Constants(BaseConstants):
 
 
 class Subsession(BaseSubsession):
-    pass
+    def creating_session(self):
+        for i, p in enumerate(self.get_players()):
+            p.treatment = (i % 2) + 1   # every second player gets treatment 2
 
 
 class Group(BaseGroup):
@@ -38,6 +40,12 @@ GENDER_CHOICES = (
 YESNO_CHOICES = (
     ('yes', 'Yes'),
     ('no', 'No'),
+)
+
+EBAY_ITEMS_PER_WEEK = (
+    ('<5', 'less than 5'),
+    ('5-10', 'between 5 and 10'),
+    ('>10', 'more than 10'),
 )
 
 # define a Likert 5-point scale with its labels
@@ -135,8 +143,59 @@ SURVEY_DEFINITIONS = (
                                   form_help_final='<p>Thank you!</p>'                     # HTML to be placed below form
             )
         ]
-    }
+    },
+    {
+        'page_title': 'Survey Questions - Page 5 - Forms depending on other variable',
+        'survey_fields': [  # we define two forms here ...
+            {   # ... this one is shown when player.treatment == 1 ...
+                'form_name': 'treatment_1_form',
+                'fields': [
+                    ('q_treatment_1', {
+                        'text': 'This is a question for treatment 1: Do you feel tired?',
+                        'field': models.CharField(choices=YESNO_CHOICES, blank=True),
+                    }),
+                ]
+            },
+            {   # ... this one is shown when player.treatment == 2 ...
+                'form_name': 'treatment_2_form',  # optional, can be used for CSS styling
+                'fields': [
+                    ('q_treatment_2', {
+                        'text': "This is a question for treatment 2:  Don't you feel tired?",
+                        'field': models.CharField(choices=YESNO_CHOICES, blank=True),
+                    }),
+                ]
+            },
+        ]
+    },
+    {
+        'page_title': 'Survey Questions - Page 6 - Conditional fields and widget adjustments',
+        'survey_fields': [
+            ('q_uses_ebay', {
+                'text': 'Do you sell things on eBay?',
+                'field': models.CharField(choices=YESNO_CHOICES),
+            }),
+            ('q_ebay_member_years', {
+                'text': 'For how many years are you an eBay member?',
+                'field': models.IntegerField(min=1, blank=True, default=None),
+                'input_suffix': 'years',                      # display suffix "years" after input box
+                'widget_attrs': {'style': 'display:inline'},  # adjust widget style
+                # set a JavaScript condition. if it evaluates to true (here: if "uses ebay" is set to "yes"),
+                # this input is shown:
+                'condition_javascript': '$("#id_q_uses_ebay").val() === "yes"'
+            }),
+            ('q_ebay_sales_per_week', {
+                'text': 'How many items do you sell on eBay per week?',
+                'field': models.CharField(choices=EBAY_ITEMS_PER_WEEK, blank=True, default=None),
+                # set a JavaScript condition. if it evaluates to true (here: if "uses ebay" is set to "yes"),
+                # this input is shown:
+                'condition_javascript': '$("#id_q_uses_ebay").val() === "yes"'
+            }),
+        ]
+    },
 )
 
 # now dynamically create the Player class from the survey definitions
-Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS)
+# we can also pass additional (non-survey) fields via `other_fields`
+Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS, other_fields={
+    'treatment': models.IntegerField()
+})

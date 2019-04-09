@@ -11,58 +11,108 @@
 {{ base_form.non_field_errors }}
 
 {% for survey_form_name, survey_form in survey_forms.items %}
-    <div class="survey_form_container">
-    {% if survey_form.form_opts.form_help_initial %}
-        <div class="survey_form_help_initial">
-            {{ survey_form.form_opts.form_help_initial|safe }}
-        </div>
-    {% endif %}
+    <div class="survey_form_container {{ survey_form_name }}">
+        {% if survey_form.form_opts.form_help_initial %}
+            <div class="survey_form_help_initial">
+                {{ survey_form.form_opts.form_help_initial|safe }}
+            </div>
+        {% endif %}
 
-    {% if survey_form.form_opts.render_type == 'table' %}
-        <table class="survey_form {{ survey_form_name }}">
-            <tr class="header">
-                <th class="first"></th>
-                {% for header_label in survey_form.form_opts.header_labels %}
-                    <th>{{ header_label }}</th>
-                {% endfor %}
-            </tr>
-            {% for field_name in survey_form.fields %}
-                {% with field=form|get_form_field:field_name %}
-                <tr>
-                    <th>
-                        {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                        {{ field.label_tag }}
-                        {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                    </th>
-                    {% for choice in field %}
-                        <td>{{ choice.tag }}</td>
+        {% if survey_form.form_opts.render_type == 'table' %}
+            <table class="survey_form">
+                <tr class="header">
+                    <th class="first"></th>
+                    {% for header_label in survey_form.form_opts.header_labels %}
+                        <th>{{ header_label }}</th>
                     {% endfor %}
                 </tr>
-                {% endwith %}
-            {% endfor %}
-        </table>
-    {% else %}
-        <div class="survey_form {{ survey_form_name }}">
-            {% for field_name in survey_form.fields %}
-                {% with field=form|get_form_field:field_name %}
-                <div class="field_container">
-                    {% if not field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                    <div class="field_errors">{{ field.errors }}</div>
-                    <div class="field_label_and_input">{{ field.label_tag }} {{ field }}</div>
-                    {% if field.help_text.0 %}{{ field.help_text.1|safe }}{% endif %}
-                </div>
-                {% endwith %}
-            {% endfor %}
-        </div>
-    {% endif %}
+                {% for field_name in survey_form.fields %}
+                    {% with field=form|get_form_field:field_name %}
+                    <tr class="{% cycle 'odd' 'even' %}"{% if field.help_text.condition_javascript %} style="display: none"{% endif %}>
+                        <th>
+                            {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
+                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label }}{% endif %}
+                            {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
+                        </th>
+                        {% for choice in field %}
+                            <td>{{ field.help_text.input_prefix|safe }} {{ choice.tag }} {{ field.help_text.input_suffix|safe }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endwith %}
+                {% endfor %}
+            </table>
+        {% else %}
+            <div class="survey_form">
+                {% for field_name in survey_form.fields %}
+                    {% with field=form|get_form_field:field_name %}
+                    <div class="field_container"{% if field.help_text.condition_javascript %} style="display: none"{% endif %}>
+                        {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
+                        <div class="field_errors">{{ field.errors }}</div>
+                        <div class="field_label_and_input">
+                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label }}{% endif %}
+                            {{ field.help_text.input_prefix|safe }} {{ field }} {{ field.help_text.input_suffix|safe }}
+                        </div>
+                        {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% endif %}
 
-    {% if survey_form.form_opts.form_help_final %}
-        <div class="survey_form_help_final">
-            {{ survey_form.form_opts.form_help_final|safe }}
-        </div>
-    {% endif %}
+        {% if survey_form.form_opts.form_help_final %}
+            <div class="survey_form_help_final">
+                {{ survey_form.form_opts.form_help_final|safe }}
+            </div>
+        {% endif %}
     </div>
 {% endfor %}
+
+<script>
+    var cond_fields_defaults = {};   // conditional form field defaults
+
+    $(function () {
+        $('form').on('change', update_form_field_display);
+        update_form_field_display(null);  // initial update
+    });
+
+    function update_form_field_display (e) {
+        //console.log('update_form_field_display', e);
+        var inp;
+
+        if (e === null) {  // store defaults on first call
+            {% for survey_form_name, survey_form in survey_forms.items %}
+                {% for field_name in survey_form.fields %}
+                    {% with field=form|get_form_field:field_name %}
+                        {% if field.help_text.condition_javascript %}
+                            inp = $('#id_{{ field_name }}');
+                            cond_fields_defaults['{{ field_name }}'] = inp.val();
+                        {% endif %}
+                    {% endwith %}
+                {% endfor %}
+            {% endfor %}
+        }
+
+        {% for survey_form_name, survey_form in survey_forms.items %}
+            {% for field_name in survey_form.fields %}
+                {% with field=form|get_form_field:field_name %}
+                    {% if field.help_text.condition_javascript %}
+                        var cond = ({{ field.help_text.condition_javascript|safe }});
+                        inp = $('#id_{{ field_name }}');
+                        var field = inp.parent().parent();
+                        if (cond) {
+                            //console.log('{{ field_name }} show');
+                            field.show();
+                        } else {
+                            //console.log('{{ field_name }} hide');
+                            field.hide();
+                            inp.val(cond_fields_defaults['{{ field_name }}']);  // reset to default
+                        }
+                    {% endif %}
+                {% endwith %}
+            {% endfor %}
+        {% endfor %}
+    }
+</script>
 
 {% next_button %}
 

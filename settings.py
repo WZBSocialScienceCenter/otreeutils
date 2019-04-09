@@ -121,14 +121,14 @@ SESSION_CONFIG_DEFAULTS = {
 SESSION_CONFIGS = [
     {
         'name': 'otreeutils_example1',
-        'display_name': 'otreeutils example 1 (Understanding questions, timeout warnings)',
+        'display_name': 'otreeutils example 1 (Understanding questions, timeout warnings, custom page URLs)',
         'num_demo_participants': 1,   # doesn't matter
         'app_sequence': ['otreeutils_example1'],
     },
     {
         'name': 'otreeutils_example2',
         'display_name': 'otreeutils example 2 (Surveys)',
-        'num_demo_participants': 1,  # doesn't matter
+        'num_demo_participants': 4,  # every second player gets treatment 2
         'app_sequence': ['otreeutils_example2'],
     },
     {

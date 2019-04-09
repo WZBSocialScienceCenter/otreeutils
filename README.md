@@ -15,13 +15,22 @@ This repository contains the package `otreeutils`. It features a set of common h
     * define all survey questions in a single data structure, let `otreeutils` create the required `Player` fields
     * create a table of Likert scale inputs ("Likert matrix")
     * create single Likert scale fields from given labels
-    * easy survey forms styling via CSS due to cleanly structured HTML output  
+    * easy survey forms styling via CSS due to cleanly structured HTML output
+    * make survey forms with conditional inputs  
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
+* Setting custom URLs for pages (instead of default: the page's class name)
 
 **Compatibility note:** This package is compatible with oTree v2.x. (It has been tested with oTree v2.1.36 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.1, which is the last version to support oTree 1.) 
 
 The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
 via `pip install otreeutils`.
+
+## Citation
+
+If you used *otreeutils* in your published research, please cite it as follows:
+
+[Konrad, M. (2018). oTree: Implementing experiments with dynamically determined data quantity. *Journal of Behavioral and Experimental Finance.*](https://doi.org/10.1016/j.jbef.2018.10.006)
+
 
 ## Examples
 
@@ -132,7 +141,7 @@ It's best to have a look at the (documented) examples to see how to use the API.
 #### `ExtendedPage` class
 
 A common page extension to oTree's default `Page` class.
- All other page classes in `otreeutils` extend this class. Allows to define timeout warnings, a page title and provides a template variable `debug` with which you can toggle debug code in your templates / JavaScript parts.
+ All other page classes in `otreeutils` extend this class. Allows to define a custom page URL via `custom_name_in_url`, timeout warnings, a page title and provides a template variable `debug` with which you can toggle debug code in your templates / JavaScript parts.
 
 The template variable `debug` is toggled using an additional `APPS_DEBUG` variable in `settings.py`. See the `settings.py` of this repository. This is quite useful for example in order to fill in the correct questions on a page with understanding questions automatically in a debug session (so that it is easier to click through the pages). 
 
@@ -206,6 +215,14 @@ Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEF
 ```
 
 The attributes (model fields, etc.) will be automatically created. When you run `otree resetdb`, you will see that the fields `q1_a`, `q1_b`, etc. will be generated in the database.
+
+You may also add extra (non-survey) fields to your `Player` class, by passing a dict to the optional `other_fields` parameter:
+
+```python
+Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS, other_fields={
+    'treatment': models.IntegerField()
+})
+```
 
 ##### Likert score inputs via `generate_likert_field` and `generate_likert_table` functions
 
@@ -282,6 +299,10 @@ SURVEY_DEFINITIONS = (
 )
 ```
 
+#### More options for surveys
+
+To implement advanced features such as conditional input display, have a look at the example app `otreeutils_example2`.
+
 #### `SurveyPage` class
 
 You can then create the survey pages which will contain the questions for the respective pages as defined before in `SURVEY_DEFINITIONS`:
@@ -335,13 +356,42 @@ page_sequence.extend(survey_pages)
 # ...
 ```
 
-Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).  
+**Have a look into the example implementations provided as `otreeutils_example1` (understanding questions, simple page extensions), `otreeutils_example2` (surveys) and `otreeutils_example3_market` (custom data models).**  
 
-## Citation
 
-Please cite as:
+### `otreeutils.scripts` module
 
-[Konrad, M. (2018). oTree: Implementing experiments with dynamically determined data quantity. *Journal of Behavioral and Experimental Finance.*](https://doi.org/10.1016/j.jbef.2018.10.006)
+This module allows creating scripts that interface with oTree from the command line. Importing `otreeutils.scripts` makes sure that everything is correctly set up and the settings are loaded. An example might be a script which exports data from the current sessions for specific apps as JSON file:
+
+```python
+import sys
+
+from otreeutils import scripts   # this is the most import line and must be included at the beginning
+
+
+if len(sys.argv) != 2:
+    print('call this script with a single argument: python %s <output.json>' % sys.argv[0])
+    exit(1)
+
+output_file = sys.argv[1]
+
+apps = ['intro',
+        'my_app',
+        'outro']
+
+print('loading data...')
+
+# get the data as hierarchical data structure. this is esp. useful if you use
+# custom data models
+combined = scripts.get_hierarchical_data_for_apps(apps)
+
+print('writing data to file', output_file)
+
+scripts.save_data_as_json_file(combined, output_file, indent=2)
+
+print('done.')
+```
+
 
 ## License
 
