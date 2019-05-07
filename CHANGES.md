@@ -1,6 +1,11 @@
 # Changes
 
 
+## v0.7.1 – 2019-05-07
+
+* `surveys` module: field labels can now contain HTML (HTML is not escaped and will be rendered)
+
+
 ## v0.7.0 – 2019-04-09
 
 * added class attribute `custom_name_in_url` for `ExtendedPage`: allows to set a custom URL for a page (instead of default class name)
