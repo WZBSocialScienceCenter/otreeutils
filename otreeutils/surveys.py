@@ -21,7 +21,7 @@ def generate_likert_field(labels, widget=None):
     Example with a 4-point Likert scale:
 
     ```
-    likert_4_field = generate_likert_field("Strongly disagree", "Disagree",  "Agree", "Strongly agree")
+    likert_4_field = generate_likert_field(["Strongly disagree", "Disagree",  "Agree", "Strongly agree"])
 
     class Player(BasePlayer):
         q1 = likert_4_field()
