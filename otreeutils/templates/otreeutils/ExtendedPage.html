@@ -18,6 +18,16 @@
             return arr[idx];
         }
 
+        function randomString(length) {  // taken from https://stackoverflow.com/a/1349426
+           var result           = '';
+           var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+           var charactersLength = characters.length;
+           for ( var i = 0; i < length; i++ ) {
+              result += characters.charAt(Math.floor(Math.random() * charactersLength));
+           }
+           return result;
+        }
+
         $(function() {
             {% if view.has_timeout_warning %}
                 var html_tpl = $(
@@ -57,6 +67,100 @@
                         $('#otree-warning-timeout').html(warning_html);
                         $('#otree-warning-timeout').removeClass('alert-warning').addClass('alert-danger');
                     });
+            {% endif %}
+
+            {% if debug_fill_forms_randomly %}
+                function fill_forms_randomly() {
+                    console.log('filling forms randomly');
+
+                    // select boxes
+                    $('select').each(function() {
+                        var sel = $(this);
+                        var opt = sel.find('option');
+                        var valid_opt = [];
+                        $(opt).each(function (i) {
+                            if ($(this).attr('value') !== '') {
+                                valid_opt.push(i);
+                            }
+                        });
+
+                        var r = randomChoice(valid_opt);
+
+                        $(opt).prop('selected', false);
+                        $(opt[r]).prop('selected', true);
+                    });
+
+
+                    // text inputs
+                    $('input[type=text]').each(function() {
+                        var inp = $(this);
+                        var minlength = inp.attr('minlength');
+                        minlength = typeof minlength === 'undefined' || minlength === '' ? 0 : parseInt(minlength);
+                        var maxlength = inp.attr('maxlength');
+                        maxlength = typeof maxlength === 'undefined' || maxlength === '' ? 10 : parseInt(maxlength);
+
+                        var r = randomString(randomInt(minlength, maxlength));
+
+                        inp.val(r);
+                    });
+
+                    // numeric inputs
+                    $('input[type=number]').each(function() {
+                        var inp = $(this);
+                        var min = inp.attr('min');
+                        min = typeof min === 'undefined' || min === '' ? 0 : parseFloat(min);
+                        var step = inp.attr('step');
+                        step = typeof step === 'undefined' || step === '' ? 1 : parseFloat(step);
+                        var max = inp.attr('max');
+                        max = typeof max === 'undefined' || max === '' ? min + step : parseFloat(max);
+
+                        var m = randomInt(0, (max - min) / step + 1);  // multiple of step
+                        var r = min + m * step;
+
+                        inp.val(r);
+                    });
+
+                    // radio inputs
+                    var radios_per_name = {};
+                    $('input[type=radio]').each(function() {
+                        var inp = $(this);
+                        var name = inp.attr('name');
+                        if (Object.keys(radios_per_name).indexOf(name) < 0) {
+                            radios_per_name[name] = [];
+                        }
+
+                        radios_per_name[name].push(inp);
+                    });
+
+                    Object.keys(radios_per_name).forEach(function (name) {
+                        console.log(name);
+                        var radios = radios_per_name[name];
+                        radios.forEach(function (inp) {
+                            inp.prop('checked', false);
+                        });
+
+                        var r = randomChoice(radios);
+                        r.prop('checked', true);
+                    });
+
+                    // range inputs (sliders)
+                    $('input[type=range]').each(function() {
+                        var inp = $(this);
+                        var min = inp.attr('min');
+                        min = typeof min === 'undefined' || min === '' ? 0 : parseFloat(min);
+                        var step = inp.attr('step');
+                        step = typeof step === 'undefined' || step === '' ? 1 : parseFloat(step);
+                        var max = inp.attr('max');
+                        max = typeof max === 'undefined' || max === '' ? min + step : parseFloat(max);
+
+                        var m = randomInt(0, (max - min) / step + 1);  // multiple of step
+                        var r = min + m * step;
+
+                        inp.val(r).trigger('change');
+                    });
+                }
+
+                window.setTimeout(fill_forms_randomly, 100);    // execute after small delay
             {% endif %}
         });
     </script>

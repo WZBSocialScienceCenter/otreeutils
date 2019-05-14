@@ -13,7 +13,6 @@ from django.utils.translation import ugettext as _
 from otree.api import Page, WaitPage
 
 APPS_DEBUG = getattr(settings, 'APPS_DEBUG', False)
-DEBUG_FOR_TPL = str(APPS_DEBUG).lower()
 
 
 class AllGroupsWaitPage(WaitPage):
@@ -28,6 +27,8 @@ class ExtendedPage(Page):
     timer_warning_text = None
     timeout_warning_seconds = None    # set this to enable a timeout warning -- no form submission, just a warning
     timeout_warning_message = 'Please hurry up, the time is over!'
+    debug = APPS_DEBUG
+    debug_fill_forms_randomly = False
 
     @classmethod
     def url_pattern(cls, name_in_url):
@@ -78,7 +79,8 @@ class ExtendedPage(Page):
             'timer_warning_text': self.timer_warning_text or default_timer_warning_text,
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
-            'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
+            'debug': int(self.debug),   # allows to retrieve a debug state in the templates
+            'debug_fill_forms_randomly': int(self.debug and self.debug_fill_forms_randomly)
         })
 
         return ctx
