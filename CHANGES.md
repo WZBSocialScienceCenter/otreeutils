@@ -1,6 +1,11 @@
 # Changes
 
 
+## v0.8.0 – 2019-05-15
+
+* pages derived from `ExtendedPage` may set `debug_fill_forms_randomly` to `True` so that when visiting the page, its form is filled in with random values (helpful during developement process)
+* `surveys` module: all columns in a Likert table now have the same width. The width of row header (first column) is 25% by default and can be changed via `table_row_header_width_pct`
+
 ## v0.7.1 – 2019-05-07
 
 * `surveys` module: field labels can now contain HTML (HTML is not escaped and will be rendered)

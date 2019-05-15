@@ -140,7 +140,8 @@ SURVEY_DEFINITIONS = (
                                       ('q_pizza_satiable', 'Satiable'),
                                   ],
                                   form_help_initial='<p>How was your latest Pizza?</p>',  # HTML to be placed on top of form
-                                  form_help_final='<p>Thank you!</p>'                     # HTML to be placed below form
+                                  form_help_final='<p>Thank you!</p>',                    # HTML to be placed below form
+                                  table_row_header_width_pct=15                           # width of row header (first column) in percent. default: 25
             )
         ]
     },
@@ -190,6 +191,49 @@ SURVEY_DEFINITIONS = (
                 # this input is shown:
                 'condition_javascript': '$("#id_q_uses_ebay").val() === "yes"'
             }),
+        ]
+    },
+    {
+        'page_title': 'Survey Questions - Page 7 - Random data input for quick debugging',
+        'form_help_initial': """
+<p>On this page, the form is filled in randomly if you run the experiment in debug mode (i.e. with
+   <code>otree devserver</code> or <code>otree runserver</code> so that <code>APPS_DEBUG</code> is <code>True</code>
+   &mdash; see <code>settings.py</code>).</p>
+<p>This feature is enabled for this page in <code>pages.py</code> like this:</p>
+
+<code>class SurveyPage7(SurveyPage):
+    debug_fill_forms_randomly = True</code> 
+""",
+        'survey_fields': [
+            # similar to page 4
+            generate_likert_table(likert_5_labels,
+                                  [
+                                      ('q_weather_cold', "It's too cold"),
+                                      ('q_weather_hot', "It's too hot"),
+                                      ('q_weather_rainy', "It's too rainy"),
+                                  ],
+                                  form_help_initial='<p>What do you think about the weather?</p>',
+                                  form_help_final='<p>&nbsp;</p>',
+                                  form_name='likert_table'
+            ),
+            {   # if you use a likert table *and* other questions on the same page, you have to wrap the other questions
+                # in a extra "sub-form", i.e. an extra dict with "fields" list
+                'form_name': 'other_questions',  # optional, can be used for CSS styling
+                'fields': [
+                    ('q_monthly_income', {
+                        'text': "What's your monthly income?",
+                        'field': models.CurrencyField(min=0)
+                    }),
+                    ('q_num_siblings', {
+                        'text': "How many siblings do you have?",
+                        'field': models.IntegerField(min=0, max=20),
+                    }),
+                    ('q_comment', {
+                        'text': "Please give us feedback on the experiment:",
+                        'field': models.LongStringField(max_length=500)
+                    }),
+                ]
+            }
         ]
     },
 )

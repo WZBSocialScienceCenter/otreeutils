@@ -95,7 +95,8 @@ class UnderstandingQuestionsPage(ExtendedPage):
     default_hint = 'This is wrong. Please reconsider.'
     default_hint_empty = 'Please fill out this answer.'
     questions = []  # define the understanding questions here. add dicts with the following keys: "question", "options", "correct"
-    set_correct_answers = APPS_DEBUG   # useful for skipping pages during development
+    set_correct_answers = True         # useful for skipping pages during development
+    debug_fill_forms_randomly = False  # not used -- use set_correct_answers
     template_name = 'otreeutils/UnderstandingQuestionsPage.html'   # reset to None to use your own template that extends this one
     form_field_n_wrong_attempts = None   # optionally record number of wrong attempts in this field (set form_model then, too!)
     form_fields = []   # no need to change this
@@ -143,7 +144,7 @@ class UnderstandingQuestionsPage(ExtendedPage):
             'n_questions': len(questions),
             'hint_empty': self.default_hint_empty,
             'form_field_n_wrong_attempts': self.form_field_n_wrong_attempts or '',
-            'set_correct_answers': str(self.set_correct_answers).lower(),
+            'set_correct_answers': str(self.set_correct_answers and self.debug).lower(),
         }
 
 

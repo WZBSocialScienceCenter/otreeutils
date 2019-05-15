@@ -144,6 +144,7 @@ class SurveyPage(ExtendedPage):
         'render_type': 'standard',
         'form_help_initial': '',
         'form_help_final': '',
+        'table_row_header_width_pct': 25,
     }
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}

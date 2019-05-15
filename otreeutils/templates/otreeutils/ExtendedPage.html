@@ -90,6 +90,19 @@
                         $(opt[r]).prop('selected', true);
                     });
 
+                    // textarea boxes
+                    $('textarea').each(function() {
+                        var inp = $(this);
+                        var minlength = inp.attr('minlength');
+                        minlength = typeof minlength === 'undefined' || minlength === '' ? 0 : parseInt(minlength);
+                        var maxlength = inp.attr('maxlength');
+                        maxlength = typeof maxlength === 'undefined' || maxlength === '' ? 100 : parseInt(maxlength);
+
+                        var r = randomString(randomInt(minlength, maxlength));
+
+                        inp.val(r);
+                    });
+
 
                     // text inputs
                     $('input[type=text]').each(function() {
@@ -133,7 +146,6 @@
                     });
 
                     Object.keys(radios_per_name).forEach(function (name) {
-                        console.log(name);
                         var radios = radios_per_name[name];
                         radios.forEach(function (inp) {
                             inp.prop('checked', false);

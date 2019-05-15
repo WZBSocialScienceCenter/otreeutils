@@ -41,6 +41,20 @@
                     {% endwith %}
                 {% endfor %}
             </table>
+
+            <script>
+                $(function () {
+                    // equal column width for likert tables
+                    var n_cols = $('table.survey_form tr:nth(1) td').length;  // only columns with input fields
+
+                    if (n_cols > 0) {
+                        var th_width = {{ survey_form.form_opts.table_row_header_width_pct|escapejs }};
+                        var td_width = (100 - th_width) / n_cols;
+                        $($('table.survey_form tr.header th.first')[0]).css('width', th_width + '%');
+                        $('table.survey_form td').css('width', td_width + '%');
+                    }
+                });
+            </script>
         {% else %}
             <div class="survey_form">
                 {% for field_name in survey_form.fields %}
