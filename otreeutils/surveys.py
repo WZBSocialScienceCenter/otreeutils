@@ -150,6 +150,7 @@ class SurveyPage(ExtendedPage):
         'table_rows_equal_height': True,     # adjust form rows so that they have equal height
         'table_rows_alternate': True,        # alternate form rows between "odd" and "even" CSS classes (alternates background colors)
         'table_rows_highlight': True,        # highlight form rows on mouse-over
+        'table_rows_randomize': False,       # randomize form rows
         'table_cells_highlight': True,       # highlight form cells on mouse-over
         'table_cells_clickable': True,       # make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
     }

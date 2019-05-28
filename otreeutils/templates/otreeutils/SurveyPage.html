@@ -45,6 +45,36 @@
             <script>
                 $(function () {
                     var survey_form_tbl = $('.{{ survey_form_name }} table.survey_form');
+                    var rows;
+
+                    {% if survey_form.form_opts.table_rows_randomize %}
+                        function shuffle(array) {
+                            var counter = array.length;
+
+                            // While there are elements in the array
+                            while (counter > 0) {
+                                // Pick a random index
+                                var index = Math.floor(Math.random() * counter);
+
+                                // Decrease counter by 1
+                                counter--;
+
+                                // And swap the last element with it
+                                var temp = array[counter];
+                                array[counter] = array[index];
+                                array[index] = temp;
+                            }
+
+                            return array;
+                        }
+
+                        rows = shuffle(survey_form_tbl.find('tr.formrow').detach());
+                        rows.each(function(i) {
+                            $(this).removeClass('even').removeClass('odd').addClass(i % 2 === 0 ? 'odd' : 'even');
+                        });
+
+                        survey_form_tbl.append(rows);
+                    {% endif %}
 
                     {% if survey_form.form_opts.table_cols_equal_width %}
                         // equal column width for likert tables
@@ -61,7 +91,7 @@
                     {% if survey_form.form_opts.table_rows_equal_height %}
                         // equal column height for likert tables
                         var max_h = 0;
-                        var rows = survey_form_tbl.find('tr.formrow');
+                        rows = survey_form_tbl.find('tr.formrow');
                         rows.each(function() {
                             var h = $(this).height();
                             if (h > max_h) {

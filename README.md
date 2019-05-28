@@ -243,6 +243,7 @@ There are several additional parameters that you can pass to `generate_likert_ta
 - `table_row_header_width_pct=<number>`: if form columns should have equal width, this specifies the width of the first column (the table row header) in percent (default: 25)
 - `table_rows_equal_height=<True/False>`: adjust form rows so that they have equal height
 - `table_rows_alternate=<True/False>`: alternate form rows between "odd" and "even" CSS classes (alternates background colors)
+- `table_rows_randomize=<True/False>`: randomize form rows
 - `table_rows_highlight=<True/False>`: highlight form rows on mouse-over
 - `table_cells_highlight=<True/False>`: highlight form cells on mouse-over
 - `table_cells_clickable=<True/False>`: make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
