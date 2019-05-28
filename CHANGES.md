@@ -1,6 +1,10 @@
 # Changes
 
 
+## v0.9.0 – 2019-??-??
+
+* allow non-survey form fields on survey pages
+
 ## v0.8.0 – 2019-05-15
 
 * pages derived from `ExtendedPage` may set `debug_fill_forms_randomly` to `True` so that when visiting the page, its form is filled in with random values (helpful during developement process)

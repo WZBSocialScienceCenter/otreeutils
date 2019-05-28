@@ -225,24 +225,25 @@ class SurveyPage(ExtendedPage):
 
         survey_forms = OrderedDict()
         for field_name, field in form.fields.items():
-            form_name = self.field_forms[field_name]
+            if field_name in self.form_fields:
+                form_name = self.field_forms[field_name]
 
-            field.label = self.field_labels[field_name]
-            field.help_text = {  # abusing the help text attribute here for arbitrary field options
-                'help_text': self.field_help_text[field_name],
-                'help_text_below': self.field_help_text_below[field_name],
-                'make_label_tag': self.field_make_label_tag[field_name],
-                'input_prefix': self.field_input_prefix[field_name],
-                'input_suffix': self.field_input_suffix[field_name],
-                'condition_javascript': self.field_condition_javascript[field_name],
-            }
+                field.label = self.field_labels[field_name]
+                field.help_text = {  # abusing the help text attribute here for arbitrary field options
+                    'help_text': self.field_help_text[field_name],
+                    'help_text_below': self.field_help_text_below[field_name],
+                    'make_label_tag': self.field_make_label_tag[field_name],
+                    'input_prefix': self.field_input_prefix[field_name],
+                    'input_suffix': self.field_input_suffix[field_name],
+                    'condition_javascript': self.field_condition_javascript[field_name],
+                }
 
-            field.widget.attrs.update(self.field_widget_attrs[field_name])
+                field.widget.attrs.update(self.field_widget_attrs[field_name])
 
-            if form_name not in survey_forms:
-                survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
+                if form_name not in survey_forms:
+                    survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
 
-            survey_forms[form_name]['fields'].append(field_name)
+                survey_forms[form_name]['fields'].append(field_name)
 
         ctx.update({
             'base_form': form,
