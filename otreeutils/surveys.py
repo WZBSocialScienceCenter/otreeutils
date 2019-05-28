@@ -144,7 +144,14 @@ class SurveyPage(ExtendedPage):
         'render_type': 'standard',
         'form_help_initial': '',
         'form_help_final': '',
-        'table_row_header_width_pct': 25,
+        # configuration options for likert tables
+        'table_row_header_width_pct': 25,    # leftmost column width (table row header) in percent
+        'table_cols_equal_width': True,      # adjust form columns so that they have equal width
+        'table_rows_equal_height': True,     # adjust form rows so that they have equal height
+        'table_rows_alternate': True,        # alternate form rows between "odd" and "even" CSS classes (alternates background colors)
+        'table_rows_highlight': True,        # highlight form rows on mouse-over
+        'table_cells_highlight': True,       # highlight form cells on mouse-over
+        'table_cells_clickable': True,       # make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
     }
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}

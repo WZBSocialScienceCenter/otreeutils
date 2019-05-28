@@ -3,7 +3,9 @@
 
 ## v0.9.0 – 2019-??-??
 
-* allow non-survey form fields on survey pages
+* `surveys` module:
+    * allow non-survey form fields on survey pages
+    * add several options to `generate_likert_table()` to adjust display and behavior of Likert tables
 
 ## v0.8.0 – 2019-05-15
 

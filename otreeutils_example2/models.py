@@ -136,12 +136,12 @@ SURVEY_DEFINITIONS = (
                                   [
                                       ('q_pizza_tasty', 'Tasty'),
                                       ('q_pizza_spicy', 'Spicy'),
-                                      ('q_pizza_cold', 'Too cold'),
+                                      ('q_pizza_cold', 'Too cold<br>or even frozen'),
                                       ('q_pizza_satiable', 'Satiable'),
                                   ],
                                   form_help_initial='<p>How was your latest Pizza?</p>',  # HTML to be placed on top of form
                                   form_help_final='<p>Thank you!</p>',                    # HTML to be placed below form
-                                  table_row_header_width_pct=15                           # width of row header (first column) in percent. default: 25
+                                  table_row_header_width_pct=15,                          # width of row header (first column) in percent. default: 25
             )
         ]
     },

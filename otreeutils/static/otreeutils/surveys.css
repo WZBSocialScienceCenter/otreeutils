@@ -44,7 +44,18 @@ table.survey_form tr.even {
     background: lightgray;
 }
 
-table.survey_form tr.odd:hover,
-table.survey_form tr.even:hover {
-    background: aliceblue;
+table.survey_form tr.formrow.active {
+    background: #f0f8ff;
+}
+
+table.survey_form tr.formrow.even.active {
+    background: #dae0e5;
+}
+
+table.survey_form tr.formrow td.active {
+    background: #eff0ff;
+}
+
+table.survey_form tr.formrow.even td.active {
+    background: #d7d8e5;
 }
