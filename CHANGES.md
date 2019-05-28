@@ -1,11 +1,11 @@
 # Changes
 
 
-## v0.9.0 – 2019-??-??
+## v0.9.0 – 2019-05-28
 
 * `surveys` module:
-    * allow non-survey form fields on survey pages
     * add several options to `generate_likert_table()` to adjust display and behavior of Likert tables
+    * allow non-survey form fields on survey pages
 
 ## v0.8.0 – 2019-05-15
 
@@ -15,7 +15,6 @@
 ## v0.7.1 – 2019-05-07
 
 * `surveys` module: field labels can now contain HTML (HTML is not escaped and will be rendered)
-
 
 ## v0.7.0 – 2019-04-09
 
