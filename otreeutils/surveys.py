@@ -200,6 +200,7 @@ class SurveyPage(ExtendedPage):
 
         form_idx = 0
         form_name = None
+        survey_defs_form_opts = {k: v for k, v in survey_defs.items() if k.startswith('form_')}
         for fielddef in survey_defs['survey_fields']:
             form_name_default = 'form%d_%d' % (page_idx, form_idx)
 
@@ -223,6 +224,7 @@ class SurveyPage(ExtendedPage):
                                          % form_name)
 
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
+                cls.forms_opts[form_name].update(survey_defs_form_opts)
                 add_field(cls, form_name, *fielddef)
 
     def get_context_data(self, **kwargs):

@@ -171,6 +171,9 @@ SURVEY_DEFINITIONS = (
     },
     {
         'page_title': 'Survey Questions - Page 6 - Conditional fields and widget adjustments',
+        'form_help_initial': """
+            <p>Conditional fields can be made with the <code>condition_javascript</code> parameter,
+            widget adjustments like custom CSS styles can be controlled via <code>widget_attrs</code>.</p>""",
         'survey_fields': [
             ('q_uses_ebay', {
                 'text': 'Do you sell things on eBay?',
@@ -196,15 +199,6 @@ SURVEY_DEFINITIONS = (
     },
     {
         'page_title': 'Survey Questions - Page 7 - Random data input for quick debugging',
-        'form_help_initial': """
-<p>On this page, the form is filled in randomly if you run the experiment in debug mode (i.e. with
-   <code>otree devserver</code> or <code>otree runserver</code> so that <code>APPS_DEBUG</code> is <code>True</code>
-   &mdash; see <code>settings.py</code>).</p>
-<p>This feature is enabled for this page in <code>pages.py</code> like this:</p>
-
-<code>class SurveyPage7(SurveyPage):
-    debug_fill_forms_randomly = True</code> 
-""",
         'survey_fields': [
             # similar to page 4
             generate_likert_table(likert_5_labels,
@@ -213,7 +207,20 @@ SURVEY_DEFINITIONS = (
                                       ('q_weather_hot', "It's too hot"),
                                       ('q_weather_rainy', "It's too rainy"),
                                   ],
-                                  form_help_initial='<p>What do you think about the weather?</p>',
+                                  form_help_initial="""
+<p>On this page, the form is filled in randomly if you run the experiment in debug mode (i.e. with
+   <code>otree devserver</code> or <code>otree runserver</code> so that <code>APPS_DEBUG</code> is <code>True</code>
+   &mdash; see <code>settings.py</code>).</p>
+<p>This feature is enabled for this page in <code>pages.py</code> like this:</p>
+
+<code><pre>class SurveyPage7(SurveyPage):
+    debug_fill_forms_randomly = True
+</pre></code>
+
+<p>&mdash;</p>
+
+<p>What do you think about the weather?</p>
+""",
                                   form_help_final='<p>&nbsp;</p>',
                                   form_name='likert_table'
             ),
