@@ -1,6 +1,12 @@
 # Changes
 
 
+## v0.9.1 – 2019-06-13
+
+* `surveys` module:
+    * added option `table_repeat_header_each_n_rows` to `generate_likert_table()`
+    * fixed problem where form options like `form_help_initial` were ignored
+
 ## v0.9.0 – 2019-05-28
 
 * `surveys` module:
