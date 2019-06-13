@@ -239,6 +239,7 @@ SURVEY_DEFINITIONS = (
 
 There are several additional parameters that you can pass to `generate_likert_table()` which will control the display and behavior of the table:
 
+- `table_repeat_header_each_n_rows=<integer>`: set to integer N > 0 to repeat the table header after every N rows
 - `table_cols_equal_width=<True/False>`: adjust form columns so that they have equal width
 - `table_row_header_width_pct=<number>`: if form columns should have equal width, this specifies the width of the first column (the table row header) in percent (default: 25)
 - `table_rows_equal_height=<True/False>`: adjust form rows so that they have equal height

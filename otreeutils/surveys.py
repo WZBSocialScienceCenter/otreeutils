@@ -145,6 +145,7 @@ class SurveyPage(ExtendedPage):
         'form_help_initial': '',
         'form_help_final': '',
         # configuration options for likert tables
+        'table_repeat_header_each_n_rows': 0,    # set to integer N > 0 to repeat the table header after every N rows
         'table_row_header_width_pct': 25,    # leftmost column width (table row header) in percent
         'table_cols_equal_width': True,      # adjust form columns so that they have equal width
         'table_rows_equal_height': True,     # adjust form rows so that they have equal height

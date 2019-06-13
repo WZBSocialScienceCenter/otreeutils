@@ -142,7 +142,7 @@ SURVEY_DEFINITIONS = (
                                   form_help_initial='<p>How was your latest Pizza?</p>',  # HTML to be placed on top of form
                                   form_help_final='<p>Thank you!</p>',                    # HTML to be placed below form
                                   table_row_header_width_pct=15,                          # width of row header (first column) in percent. default: 25
-                                  table_rows_randomize=True                               # randomize order of displayed rows
+                                  table_rows_randomize=True,                              # randomize order of displayed rows
             )
         ]
     },

@@ -76,6 +76,17 @@
                         survey_form_tbl.append(rows);
                     {% endif %}
 
+                    {% if survey_form.form_opts.table_repeat_header_each_n_rows > 0 %}
+                        // repeat table header (using JS here instead of template code because of possible row randomization)
+                        var header_row = survey_form_tbl.find('tr.header');
+                        rows = survey_form_tbl.find('tr.formrow');
+                        rows.each(function(i) {
+                            if (i > 0 && i % {{ survey_form.form_opts.table_repeat_header_each_n_rows }} === 0) {
+                                $(this).before(header_row.clone());
+                            }
+                        });
+                    {% endif %}
+
                     {% if survey_form.form_opts.table_cols_equal_width %}
                         // equal column width for likert tables
                         var n_cols = survey_form_tbl.find('tr:nth(1) td').length;  // only columns with input fields
