@@ -85,6 +85,9 @@ def create_player_model_for_survey(module, survey_definitions, other_fields=None
 
     Returns the dynamically created player model with the respective fields (class attributes).
     """
+    if not isinstance(survey_definitions, tuple):
+        raise ValueError('`survey_definitions` must be a tuple')
+
     if other_fields is None:
         other_fields = {}
     else:

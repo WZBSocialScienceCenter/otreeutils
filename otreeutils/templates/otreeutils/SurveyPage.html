@@ -134,8 +134,8 @@
                     {% if survey_form.form_opts.table_cells_clickable %}
                         // make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
                         survey_form_tbl.find('tr.formrow td').click(function() {
-                            $(this).parent().find('input').prop('checked', false);
-                            $(this).find('input').prop('checked', true);
+                            $(this).parent().find('input').prop('checked', false).trigger('change');
+                            $(this).find('input').prop('checked', true).trigger('change');
                         });
                     {% endif %}
                 });

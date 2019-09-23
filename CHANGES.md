@@ -1,6 +1,12 @@
 # Changes
 
 
+## v0.9.2 – 2019-09-23
+
+* `surveys` module:
+    * added missing "change" triggers when checkboxes are selected in Likert table via clicking/touching the table cell
+    * added a check to require the `survey_definitions` argument to be a tuple in `create_player_model_for_survey`
+
 ## v0.9.1 – 2019-06-13
 
 * `surveys` module:
