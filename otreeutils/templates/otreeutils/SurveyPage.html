@@ -28,10 +28,10 @@
                 </tr>
                 {% for field_name in survey_form.fields %}
                     {% with field=form|get_form_field:field_name %}
-                    <tr class="{% cycle 'odd' 'even' %}"{% if field.help_text.condition_javascript %} style="display: none"{% endif %}>
+                    <tr class="formrow {% if survey_form.form_opts.table_rows_alternate %}{% cycle 'odd' 'even' %}{% endif %}"{% if field.help_text.condition_javascript %} style="display: none"{% endif %}>
                         <th>
                             {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
-                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label }}{% endif %}
+                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label|safe }}{% endif %}
                             {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                         </th>
                         {% for choice in field %}
@@ -41,6 +41,105 @@
                     {% endwith %}
                 {% endfor %}
             </table>
+
+            <script>
+                $(function () {
+                    var survey_form_tbl = $('.{{ survey_form_name }} table.survey_form');
+                    var rows;
+
+                    {% if survey_form.form_opts.table_rows_randomize %}
+                        function shuffle(array) {
+                            var counter = array.length;
+
+                            // While there are elements in the array
+                            while (counter > 0) {
+                                // Pick a random index
+                                var index = Math.floor(Math.random() * counter);
+
+                                // Decrease counter by 1
+                                counter--;
+
+                                // And swap the last element with it
+                                var temp = array[counter];
+                                array[counter] = array[index];
+                                array[index] = temp;
+                            }
+
+                            return array;
+                        }
+
+                        rows = shuffle(survey_form_tbl.find('tr.formrow').detach());
+                        rows.each(function(i) {
+                            $(this).removeClass('even').removeClass('odd').addClass(i % 2 === 0 ? 'odd' : 'even');
+                        });
+
+                        survey_form_tbl.append(rows);
+                    {% endif %}
+
+                    {% if survey_form.form_opts.table_repeat_header_each_n_rows > 0 %}
+                        // repeat table header (using JS here instead of template code because of possible row randomization)
+                        var header_row = survey_form_tbl.find('tr.header');
+                        rows = survey_form_tbl.find('tr.formrow');
+                        rows.each(function(i) {
+                            if (i > 0 && i % {{ survey_form.form_opts.table_repeat_header_each_n_rows }} === 0) {
+                                $(this).before(header_row.clone());
+                            }
+                        });
+                    {% endif %}
+
+                    {% if survey_form.form_opts.table_cols_equal_width %}
+                        // equal column width for likert tables
+                        var n_cols = survey_form_tbl.find('tr:nth(1) td').length;  // only columns with input fields
+
+                        if (n_cols > 0) {
+                            var th_width = {{ survey_form.form_opts.table_row_header_width_pct|escapejs }};
+                            var td_width = (100 - th_width) / n_cols;
+                            $(survey_form_tbl.find('tr.header th.first')[0]).css('width', th_width + '%');
+                            survey_form_tbl.find('td').css('width', td_width + '%');
+                        }
+                    {% endif %}
+
+                    {% if survey_form.form_opts.table_rows_equal_height %}
+                        // equal column height for likert tables
+                        var max_h = 0;
+                        rows = survey_form_tbl.find('tr.formrow');
+                        rows.each(function() {
+                            var h = $(this).height();
+                            if (h > max_h) {
+                                max_h = h;
+                            }
+                        });
+
+                        rows.css('height', max_h + 'px');
+                    {% endif %}
+
+                    {% if survey_form.form_opts.table_rows_highlight %}
+                        // highlight table rows on mouse-over
+                        survey_form_tbl.find('tr.formrow').hover(function() {
+                            $(this).addClass('active');
+                        }, function() {
+                            $(this).removeClass('active');
+                        });
+                    {% endif %}
+
+                    {% if survey_form.form_opts.table_cells_highlight %}
+                        // highlight form cells on mouse-over
+                        survey_form_tbl.find('tr.formrow td').hover(function() {
+                            $(this).addClass('active');
+                        }, function() {
+                            $(this).removeClass('active');
+                        });
+                    {% endif %}
+
+                    {% if survey_form.form_opts.table_cells_clickable %}
+                        // make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
+                        survey_form_tbl.find('tr.formrow td').click(function() {
+                            $(this).parent().find('input').prop('checked', false).trigger('change');
+                            $(this).find('input').prop('checked', true).trigger('change');
+                        });
+                    {% endif %}
+                });
+            </script>
         {% else %}
             <div class="survey_form">
                 {% for field_name in survey_form.fields %}
@@ -49,7 +148,7 @@
                         {% if not field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}
                         <div class="field_errors">{{ field.errors }}</div>
                         <div class="field_label_and_input">
-                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label }}{% endif %}
+                            {% if field.help_text.make_label_tag %}{{ field.label_tag }}{% else %}{{ field.label|safe }}{% endif %}
                             {{ field.help_text.input_prefix|safe }} {{ field }} {{ field.help_text.input_suffix|safe }}
                         </div>
                         {% if field.help_text.help_text_below %}{{ field.help_text.help_text|safe }}{% endif %}

@@ -1,6 +1,33 @@
 # Changes
 
 
+## v0.9.2 – 2019-09-23
+
+* `surveys` module:
+    * added missing "change" triggers when checkboxes are selected in Likert table via clicking/touching the table cell
+    * added a check to require the `survey_definitions` argument to be a tuple in `create_player_model_for_survey`
+
+## v0.9.1 – 2019-06-13
+
+* `surveys` module:
+    * added option `table_repeat_header_each_n_rows` to `generate_likert_table()`
+    * fixed problem where form options like `form_help_initial` were ignored
+
+## v0.9.0 – 2019-05-28
+
+* `surveys` module:
+    * add several options to `generate_likert_table()` to adjust display and behavior of Likert tables
+    * allow non-survey form fields on survey pages
+
+## v0.8.0 – 2019-05-15
+
+* pages derived from `ExtendedPage` may set `debug_fill_forms_randomly` to `True` so that when visiting the page, its form is filled in with random values (helpful during developement process)
+* `surveys` module: all columns in a Likert table now have the same width. The width of row header (first column) is 25% by default and can be changed via `table_row_header_width_pct`
+
+## v0.7.1 – 2019-05-07
+
+* `surveys` module: field labels can now contain HTML (HTML is not escaped and will be rendered)
+
 ## v0.7.0 – 2019-04-09
 
 * added class attribute `custom_name_in_url` for `ExtendedPage`: allows to set a custom URL for a page (instead of default class name)

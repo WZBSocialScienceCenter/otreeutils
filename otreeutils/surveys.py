@@ -21,7 +21,7 @@ def generate_likert_field(labels, widget=None):
     Example with a 4-point Likert scale:
 
     ```
-    likert_4_field = generate_likert_field("Strongly disagree", "Disagree",  "Agree", "Strongly agree")
+    likert_4_field = generate_likert_field(["Strongly disagree", "Disagree",  "Agree", "Strongly agree"])
 
     class Player(BasePlayer):
         q1 = likert_4_field()
@@ -85,6 +85,9 @@ def create_player_model_for_survey(module, survey_definitions, other_fields=None
 
     Returns the dynamically created player model with the respective fields (class attributes).
     """
+    if not isinstance(survey_definitions, tuple):
+        raise ValueError('`survey_definitions` must be a tuple')
+
     if other_fields is None:
         other_fields = {}
     else:
@@ -144,6 +147,16 @@ class SurveyPage(ExtendedPage):
         'render_type': 'standard',
         'form_help_initial': '',
         'form_help_final': '',
+        # configuration options for likert tables
+        'table_repeat_header_each_n_rows': 0,    # set to integer N > 0 to repeat the table header after every N rows
+        'table_row_header_width_pct': 25,    # leftmost column width (table row header) in percent
+        'table_cols_equal_width': True,      # adjust form columns so that they have equal width
+        'table_rows_equal_height': True,     # adjust form rows so that they have equal height
+        'table_rows_alternate': True,        # alternate form rows between "odd" and "even" CSS classes (alternates background colors)
+        'table_rows_highlight': True,        # highlight form rows on mouse-over
+        'table_rows_randomize': False,       # randomize form rows
+        'table_cells_highlight': True,       # highlight form cells on mouse-over
+        'table_cells_clickable': True,       # make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
     }
     template_name = 'otreeutils/SurveyPage.html'
     field_labels = {}
@@ -191,6 +204,7 @@ class SurveyPage(ExtendedPage):
 
         form_idx = 0
         form_name = None
+        survey_defs_form_opts = {k: v for k, v in survey_defs.items() if k.startswith('form_')}
         for fielddef in survey_defs['survey_fields']:
             form_name_default = 'form%d_%d' % (page_idx, form_idx)
 
@@ -214,6 +228,7 @@ class SurveyPage(ExtendedPage):
                                          % form_name)
 
                 cls.forms_opts[form_name] = cls.FORM_OPTS_DEFAULT.copy()
+                cls.forms_opts[form_name].update(survey_defs_form_opts)
                 add_field(cls, form_name, *fielddef)
 
     def get_context_data(self, **kwargs):
@@ -224,24 +239,25 @@ class SurveyPage(ExtendedPage):
 
         survey_forms = OrderedDict()
         for field_name, field in form.fields.items():
-            form_name = self.field_forms[field_name]
+            if field_name in self.form_fields:
+                form_name = self.field_forms[field_name]
 
-            field.label = self.field_labels[field_name]
-            field.help_text = {  # abusing the help text attribute here for arbitrary field options
-                'help_text': self.field_help_text[field_name],
-                'help_text_below': self.field_help_text_below[field_name],
-                'make_label_tag': self.field_make_label_tag[field_name],
-                'input_prefix': self.field_input_prefix[field_name],
-                'input_suffix': self.field_input_suffix[field_name],
-                'condition_javascript': self.field_condition_javascript[field_name],
-            }
+                field.label = self.field_labels[field_name]
+                field.help_text = {  # abusing the help text attribute here for arbitrary field options
+                    'help_text': self.field_help_text[field_name],
+                    'help_text_below': self.field_help_text_below[field_name],
+                    'make_label_tag': self.field_make_label_tag[field_name],
+                    'input_prefix': self.field_input_prefix[field_name],
+                    'input_suffix': self.field_input_suffix[field_name],
+                    'condition_javascript': self.field_condition_javascript[field_name],
+                }
 
-            field.widget.attrs.update(self.field_widget_attrs[field_name])
+                field.widget.attrs.update(self.field_widget_attrs[field_name])
 
-            if form_name not in survey_forms:
-                survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
+                if form_name not in survey_forms:
+                    survey_forms[form_name] = {'fields': [], 'form_opts': self.forms_opts.get(form_name, {})}
 
-            survey_forms[form_name]['fields'].append(field_name)
+                survey_forms[form_name]['fields'].append(field_name)
 
         ctx.update({
             'base_form': form,

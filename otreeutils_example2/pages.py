@@ -55,6 +55,10 @@ class SurveyPage6(SurveyPage):
     pass
 
 
+class SurveyPage7(SurveyPage):
+    debug_fill_forms_randomly = True   # enable random data input if APPS_DEBUG is True
+
+
 # Create a list of survey pages.
 # The order is important! The survey questions are taken in the same order
 # from the SURVEY_DEFINITIONS in models.py
@@ -66,6 +70,7 @@ survey_pages = [
     SurveyPage4,
     SurveyPage5,
     SurveyPage6,
+    SurveyPage7
 ]
 
 # Common setup for all pages (will set the questions per page)

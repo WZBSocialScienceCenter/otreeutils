@@ -1,6 +1,6 @@
 # otreeutils
 
-February 2019, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+September 2019, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
 ## A package with common oTree utilities
 
@@ -18,6 +18,7 @@ This repository contains the package `otreeutils`. It features a set of common h
     * easy survey forms styling via CSS due to cleanly structured HTML output
     * make survey forms with conditional inputs  
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
+* More convenient development process by optional automatic fill-in of forms (saves you from clicking through many inputs during development)  
 * Setting custom URLs for pages (instead of default: the page's class name)
 
 **Compatibility note:** This package is compatible with oTree v2.x. (It has been tested with oTree v2.1.36 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.1, which is the last version to support oTree 1.) 
@@ -57,80 +58,6 @@ In order to use otreeutils in your experiment implementation, you only need to d
    the `otreeutils` folder to your oTree experiment directory.
 2. Edit your `settings.py` so that you add "otreeutils" to your `INSTALLED_APPS` list. **Don't forget this, otherwise the required templates and static files cannot be loaded correctly!**
 
-### Custom data models and admin extensions
-
-If you implement custom data models and want to use otreeutils' admin extensions you additionally need to follow these steps:
-
-#### 1. Add configuration class to custom models
-
-For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
-
-```python
-from otree.db.models import Model, ForeignKey   # import base Model class and ForeignKey
-
-# ...
-
-class FruitOffer(Model):
-    amount = models.IntegerField(label='Amount', min=0, initial=0)
-
-    # ... more fields here ...
-
-    seller = ForeignKey(Player)
-
-
-    class CustomModelConf:
-        """
-        Configuration for otreeutils admin extensions.
-        """
-        data_view = {    # define this attribute if you want to include this model in the live data view
-            'exclude_fields': ['seller'],
-            'link_with': 'seller'
-        }
-        export_data = {  # define this attribute if you want to include this model in the data export
-            'exclude_fields': ['seller_id'],
-            'link_with': 'seller'
-        }
-
-``` 
-
-#### 2. Add a custom urls module
-
-In your experiment app, add a file `urls.py` and simply include the custom URL patters from otreeutils as follows:
-
-```python
-from otreeutils.admin_extensions.urls import urlpatterns
-
-# add more custom URL rules here if necessary
-# ...
-```
-
-#### 3. Add a custom routing module
-
-In your experiment app, add a file `routing.py` and simply include the custom channel routing patters from otreeutils as follows:
-
-```python
-from otreeutils.admin_extensions.routing import channel_routing
-
-# add more custom channel routing rules here if necessary
-# ...
-```
-
-#### 4. Update `settings.py` to load the custom URLs and channel routes
-
-Add these lines to your `settings.py`:
-
-```python
-ROOT_URLCONF = '<APP_PACKAGE>.urls'
-CHANNEL_ROUTING = '<APP_PACKAGE>.routing.channel_routing'
-```
-
-Instead of `<APP_PACKAGE>` write your app's package name (e.g. "market" if your app is named "market").
-
-**And don't forget to edit your settings.py so that you add "otreeutils" to your INSTALLED_APPS list!**
-
-That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
-
-See also the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market) that uses custom data models.
 
 ## API overview
 
@@ -143,7 +70,18 @@ It's best to have a look at the (documented) examples to see how to use the API.
 A common page extension to oTree's default `Page` class.
  All other page classes in `otreeutils` extend this class. Allows to define a custom page URL via `custom_name_in_url`, timeout warnings, a page title and provides a template variable `debug` with which you can toggle debug code in your templates / JavaScript parts.
 
-The template variable `debug` is toggled using an additional `APPS_DEBUG` variable in `settings.py`. See the `settings.py` of this repository. This is quite useful for example in order to fill in the correct questions on a page with understanding questions automatically in a debug session (so that it is easier to click through the pages). 
+The template variable `debug` (integer – 0 or 1) is toggled using an additional `APPS_DEBUG` variable in `settings.py`. See the `settings.py` of this repository. This is quite useful for example in order to fill in the correct questions on a page with understanding questions automatically in a debug session (so that it is easier to click through the pages).
+
+There is also a page variable `debug_fill_forms_randomly`, which can be set for any page derived from the `ExtendedPage` class (i.e. also for survey pages -- see below). If you set this variable to `True`, then all form inputs on the page are automatically filled in with random values once you visit the page. This happens when you run the experiment in "debug mode", i.e. when `APPS_DEBUG` is set to `True`. By default, `debug_fill_forms_randomly` is set to `False`. You can enable this feature for a given page like this:
+
+```python
+from otreeutils.pages import ExtendedPage
+
+class MyPage(ExtendedPage):
+    debug_fill_forms_randomly = True
+```
+
+This saves time when you click through an experiment with many complex forms.
 
 #### `UnderstandingQuestionsPage` class
 
@@ -299,6 +237,18 @@ SURVEY_DEFINITIONS = (
 )
 ```
 
+There are several additional parameters that you can pass to `generate_likert_table()` which will control the display and behavior of the table:
+
+- `table_repeat_header_each_n_rows=<integer>`: set to integer N > 0 to repeat the table header after every N rows
+- `table_cols_equal_width=<True/False>`: adjust form columns so that they have equal width
+- `table_row_header_width_pct=<number>`: if form columns should have equal width, this specifies the width of the first column (the table row header) in percent (default: 25)
+- `table_rows_equal_height=<True/False>`: adjust form rows so that they have equal height
+- `table_rows_alternate=<True/False>`: alternate form rows between "odd" and "even" CSS classes (alternates background colors)
+- `table_rows_randomize=<True/False>`: randomize form rows
+- `table_rows_highlight=<True/False>`: highlight form rows on mouse-over
+- `table_cells_highlight=<True/False>`: highlight form cells on mouse-over
+- `table_cells_clickable=<True/False>`: make form cells clickable for selection (otherwise only the small radio buttons can be clicked)
+
 #### More options for surveys
 
 To implement advanced features such as conditional input display, have a look at the example app `otreeutils_example2`.
@@ -331,6 +281,15 @@ survey_pages = [
     # more pages ...
 ]
 ```
+
+Since each `SurveyPage` is derived from the `ExtendedPage` class, you can also enable the automatic fill-in feature. This means that all form inputs on the page are automatically filled in with random values once you visit the page. That happens when you run the experiment in "debug mode", i.e. when `APPS_DEBUG` is set to `True`. By default, `debug_fill_forms_randomly` is set to `False`. You can enable this feature for a given survey page like this:
+
+```python
+class SurveyPage3(SurveyPage):
+    debug_fill_forms_randomly = True
+```
+
+This saves time when you click through an experiment with many survey fields.
 
 #### `setup_survey_pages` function
 
@@ -392,6 +351,80 @@ scripts.save_data_as_json_file(combined, output_file, indent=2)
 print('done.')
 ```
 
+### Custom data models and admin extensions
+
+If you implement custom data models and want to use otreeutils' admin extensions you additionally need to follow these steps:
+
+#### 1. Add configuration class to custom models
+
+For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
+
+```python
+from otree.db.models import Model, ForeignKey   # import base Model class and ForeignKey
+
+# ...
+
+class FruitOffer(Model):
+    amount = models.IntegerField(label='Amount', min=0, initial=0)
+
+    # ... more fields here ...
+
+    seller = ForeignKey(Player)
+
+
+    class CustomModelConf:
+        """
+        Configuration for otreeutils admin extensions.
+        """
+        data_view = {    # define this attribute if you want to include this model in the live data view
+            'exclude_fields': ['seller'],
+            'link_with': 'seller'
+        }
+        export_data = {  # define this attribute if you want to include this model in the data export
+            'exclude_fields': ['seller_id'],
+            'link_with': 'seller'
+        }
+
+``` 
+
+#### 2. Add a custom urls module
+
+In your experiment app, add a file `urls.py` and simply include the custom URL patters from otreeutils as follows:
+
+```python
+from otreeutils.admin_extensions.urls import urlpatterns
+
+# add more custom URL rules here if necessary
+# ...
+```
+
+#### 3. Add a custom routing module
+
+In your experiment app, add a file `routing.py` and simply include the custom channel routing patters from otreeutils as follows:
+
+```python
+from otreeutils.admin_extensions.routing import channel_routing
+
+# add more custom channel routing rules here if necessary
+# ...
+```
+
+#### 4. Update `settings.py` to load the custom URLs and channel routes
+
+Add these lines to your `settings.py`:
+
+```python
+ROOT_URLCONF = '<APP_PACKAGE>.urls'
+CHANNEL_ROUTING = '<APP_PACKAGE>.routing.channel_routing'
+```
+
+Instead of `<APP_PACKAGE>` write your app's package name (e.g. "market" if your app is named "market").
+
+**And don't forget to edit your settings.py so that you add "otreeutils" to your INSTALLED_APPS list!**
+
+That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
+
+See also the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market) that uses custom data models.
 
 ## License
 

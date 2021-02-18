@@ -13,7 +13,6 @@ from django.utils.translation import ugettext as _
 from otree.api import Page, WaitPage
 
 APPS_DEBUG = getattr(settings, 'APPS_DEBUG', False)
-DEBUG_FOR_TPL = str(APPS_DEBUG).lower()
 
 
 class AllGroupsWaitPage(WaitPage):
@@ -28,6 +27,8 @@ class ExtendedPage(Page):
     timer_warning_text = None
     timeout_warning_seconds = None    # set this to enable a timeout warning -- no form submission, just a warning
     timeout_warning_message = 'Please hurry up, the time is over!'
+    debug = APPS_DEBUG
+    debug_fill_forms_randomly = False
 
     @classmethod
     def url_pattern(cls, name_in_url):
@@ -78,7 +79,8 @@ class ExtendedPage(Page):
             'timer_warning_text': self.timer_warning_text or default_timer_warning_text,
             'timeout_warning_seconds': self.timeout_warning_seconds,
             'timeout_warning_message': self.timeout_warning_message,
-            'debug': DEBUG_FOR_TPL,   # allows to retrieve a debug state in the templates
+            'debug': int(self.debug),   # allows to retrieve a debug state in the templates
+            'debug_fill_forms_randomly': int(self.debug and self.debug_fill_forms_randomly)
         })
 
         return ctx
@@ -93,7 +95,8 @@ class UnderstandingQuestionsPage(ExtendedPage):
     default_hint = 'This is wrong. Please reconsider.'
     default_hint_empty = 'Please fill out this answer.'
     questions = []  # define the understanding questions here. add dicts with the following keys: "question", "options", "correct"
-    set_correct_answers = APPS_DEBUG   # useful for skipping pages during development
+    set_correct_answers = True         # useful for skipping pages during development
+    debug_fill_forms_randomly = False  # not used -- use set_correct_answers
     template_name = 'otreeutils/UnderstandingQuestionsPage.html'   # reset to None to use your own template that extends this one
     form_field_n_wrong_attempts = None   # optionally record number of wrong attempts in this field (set form_model then, too!)
     form_fields = []   # no need to change this
@@ -141,7 +144,7 @@ class UnderstandingQuestionsPage(ExtendedPage):
             'n_questions': len(questions),
             'hint_empty': self.default_hint_empty,
             'form_field_n_wrong_attempts': self.form_field_n_wrong_attempts or '',
-            'set_correct_answers': str(self.set_correct_answers).lower(),
+            'set_correct_answers': str(self.set_correct_answers and self.debug).lower(),
         }
 
 

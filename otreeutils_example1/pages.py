@@ -8,7 +8,6 @@ from otreeutils.pages import AllGroupsWaitPage, ExtendedPage, UnderstandingQuest
 
 class SomeUnderstandingQuestions(UnderstandingQuestionsPage):
     page_title = 'Example 1.1: A page with some understanding questions'
-    #set_correct_answers = APPS_DEBUG    # this is the default setting
     set_correct_answers = False   # do not fill out the correct answers in advance (this is for fast skipping through pages)
     form_model = models.Player
     form_field_n_wrong_attempts = 'understanding_questions_wrong_attempts'

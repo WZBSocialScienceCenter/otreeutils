@@ -741,6 +741,7 @@ class ExportAppExtension(ExportApp):
                         out_player['__participant'] = _odict_from_row(participant_obj,
                                                                       columns_for_models['participant'],
                                                                       is_obj=True)
+                        out_player['__participant']['vars'] = participant_obj.vars
 
                         # 1.1.2.2.2. each possible custom models connected to this player
                         player_custom_models_rows = prefetch_custom.get('player', {})
