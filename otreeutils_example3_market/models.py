@@ -86,8 +86,8 @@ class FruitOffer(Model):
     # easy to add more attributes per fruit, e.g.:
     #is_organic = models.BooleanField()   # if True: organic fruit, else conventional
 
-    seller = ForeignKey(Player)    # creates many-to-one relation -> this fruit is sold by a certain player, a player
-                                   # can sell many fruits
+    # creates many-to-one relation -> this fruit is sold by a certain player, a player can sell many fruits
+    seller = ForeignKey(Player, on_delete=models.CASCADE)
 
     class CustomModelConf:
         """
@@ -115,11 +115,13 @@ class Purchase(Model):
     amount = models.IntegerField(min=1)    # fruits taken
     # price = models.CurrencyField(min=0)   optional: allow bargaining
 
-    fruit = ForeignKey(FruitOffer)     # creates many-to-one relation -> this purchase relates to a certain fruit offer
-                                       # many purchases can be made for this offer (as long as there's more than 0
-                                       # fruits left)
-    buyer = ForeignKey(Player)         # creates many-to-one relation -> this fruit is bought by a certain player
-                                       # *in a certain round*. a player can buy many fruits.
+    fruit = ForeignKey(FruitOffer, on_delete=models.CASCADE)     # creates many-to-one relation -> this purchase
+                                                                 # relates to a certain fruit offer
+                                                                 # many purchases can be made for this offer (as long
+                                                                 # as there's at least 1 fruit left)
+    buyer = ForeignKey(Player, on_delete=models.CASCADE)         # creates many-to-one relation -> this fruit is bought
+                                                                 # by a certain player *in a certain round*. a player
+                                                                 # can buy many fruits.
 
     class CustomModelConf:
         """
