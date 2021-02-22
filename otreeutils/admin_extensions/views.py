@@ -218,7 +218,7 @@ def get_dataframe_from_linked_models(std_models_querysets, links_to_custom_model
         # special handling for Player's attributes payoff and role
         if smodel_name == 'Player':
             df_smodel.rename(columns={'_payoff': 'payoff'}, inplace=True)
-            df_smodel['role'] = [p.role() for p in smodel_qs]
+            df_smodel['role'] = [p.role() if p.role else '' for p in smodel_qs]
 
         # prepend model name to each column
         renamings = dict((c, smodel_name_lwr + '.' + c) for c in df_smodel.columns)
@@ -363,6 +363,17 @@ def combine_column_names(std_models_colnames, custom_models_colnames, drop_colum
     return [c for c in all_colnames if c not in drop_columns]
 
 
+def get_custom_models_conf_per_app(session):
+    custom_models_conf_per_app = {}
+    for app_name in session.config['app_sequence']:
+        models_module = get_models_module(app_name)
+        conf = get_custom_models_conf(models_module, for_action='data_view')
+        if conf:
+            custom_models_conf_per_app[app_name] = conf
+
+    return custom_models_conf_per_app
+
+
 def get_rows_for_data_tab(session):
     for app_name in session.config['app_sequence']:
         yield from get_rows_for_data_tab_app(session, app_name)
@@ -411,48 +422,20 @@ def get_rows_for_data_tab_app(session, app_name):
         # sanitize each value
         df = df.applymap(sanitize_pdvalue_for_live_update)\
             .rename(columns={'group.id_in_subsession': 'player.group'})[all_colnames]
-        print(df)
-        print('---')
-
-        # print(df.to_json(orient='values'))
-        # print('---')
 
         yield df.to_dict(orient='split')['data']
-
-
-    # players = Player.objects.filter(session=session).order_by('pk').values()
-    #
-    # players_by_round = defaultdict(list)
-    # for p in players:
-    #     players_by_round[p['round_number']].append(p)
-    #
-    # groups = {g['id']: g for g in Group.objects.filter(session=session).values()}
-    # subsessions = {
-    #     s['id']: s for s in Subsession.objects.filter(session=session).values()
-    # }
-    #
-    # for round_number in range(1, len(subsessions) + 1):
-    #     table = []
-    #     for p in players_by_round[round_number]:
-    #         g = groups[p['group_id']]
-    #         export.tweak_player_values_dict(p, g['id_in_subsession'])
-    #         s = subsessions[p['subsession_id']]
-    #         row = (
-    #             [p[fname] for fname in pfields]
-    #             + [g[fname] for fname in gfields]
-    #             + [s[fname] for fname in sfields]
-    #         )
-    #         table.append([export.sanitize_for_csv(v) for v in row])
-    #     yield table
 
 
 class SessionDataExtension(SessionData):
     """
     Extension to oTree's live session data viewer.
     """
-
     def vars_for_template(self):
         session = self.session
+
+        custom_models_conf_per_app = get_custom_models_conf_per_app(session)
+        if not custom_models_conf_per_app:
+            return super(SessionDataExtension, self).vars_for_template()
 
         tables = []
         field_headers = {}
@@ -491,14 +474,21 @@ class SessionDataExtension(SessionData):
         )
 
     def get_template_names(self):
-        return ['otreeutils/admin/SessionDataExtension.html']
+        if get_custom_models_conf_per_app(self.session):
+            return ['otreeutils/admin/SessionDataExtension.html']
+        else:
+            return ['otree/admin/SessionData.html']   # original template
 
 
 class SessionDataAjaxExtension(SessionDataAjax):
     def get(self, request, code):
         session = get_object_or_404(Session, code=code)
-        rows = list(get_rows_for_data_tab(session))
-        return JsonResponse(rows, safe=False)
+
+        if get_custom_models_conf_per_app(session):
+            rows = list(get_rows_for_data_tab(session))
+            return JsonResponse(rows, safe=False)
+        else:
+            return super(SessionDataAjaxExtension, self).get(request, code)
 
 
 class SessionDataExtensionOld(SessionData):
