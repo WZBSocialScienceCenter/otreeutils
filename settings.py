@@ -1,8 +1,8 @@
 import importlib.util
 from os import environ
 
-# CHANGE THIS IN YOUR OWN EXPERIMENTS
-SECRET_KEY = '7d+8)6q47+xw77=%l7%79en-vpor5tg7f$=d-21+^#js*nwrum'
+# SET THIS IN YOUR OWN EXPERIMENTS
+SECRET_KEY = '...'
 
 # List of example experiments
 
@@ -48,7 +48,7 @@ LANGUAGE_CODE = 'en'
 
 # e.g. EUR, GBP, CNY, JPY
 REAL_WORLD_CURRENCY_CODE = 'USD'
-USE_POINTS = True
+USE_POINTS = False
 
 ROOMS = [
     dict(
