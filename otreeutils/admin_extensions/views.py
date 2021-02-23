@@ -32,72 +32,247 @@ def flatten_list(l):
     return f
 
 
-# def get_hierarchical_data_for_apps(apps):
-#     """
-#     Return a hierarchical data structure consisting of nested OrderedDicts for all data collected for apps listed
-#     in `apps`. The format of the returned data structure is:
-#
-#     ```
-#     {
-#         <session_1_code>: {
-#             'code': ...,
-#             'label': ...,
-#             # more session data
-#             # ...
-#             '__apps': {  # list of apps as requested in `apps` argument
-#                 <app_1_name>: [                  # list of subsessions in app 1 played in session 1
-#                     {
-#                         'round_number': 1,
-#                         # more subsession data
-#                         # ...
-#                         '__group': [                 # list of groups in subsession 1 of app 1 played in session 1
-#                             {
-#                                 'id_in_subsession': 1,
-#                                 # more group data
-#                                 # ...
-#                                 '__player': [            # list of players in group 1 in subsession 1 of app 1 played in session 1
-#                                     {
-#                                         "id_in_group": 1,
-#                                         # more player data
-#                                         # ...
-#                                         '__participant': {   # reference to participant for this player
-#                                             "id_in_session": 1,
-#                                             "code": "5ilq0fad",
-#                                             # more participant data
-#                                             # ...
-#                                         },
-#                                         '__custom_model': [  # some optional custom model data connected to this player (could also be connected to group or subsession)
-#                                             # custom model data
-#                                         ]
-#                                     }, # more players in this group
-#                                 ]
-#                             }, # more groups in this session
-#                         ]
-#                     }, # more subsessions (rounds) in this app
-#                 ]
-#             },  # more apps in this session
-#         },
-#         <session_2_code>: { # similar to above },
-#         # ...
-#     }
-#     ```
-#     """
-#
-#     combined = OrderedDict()
-#
-#     for app in apps:
-#         sessions = ExportAppExtension.get_hierarchical_data_for_app(app)
-#
-#         for sess in sessions:
-#             sesscode = sess['code']
-#             if sesscode not in combined.keys():
-#                 combined[sesscode] = OrderedDict([(k, v) for k, v in sess.items() if k != '__subsession'])
-#                 combined[sesscode]['__apps'] = OrderedDict()
-#
-#             combined[sesscode]['__apps'][app] = sess['__subsession']
-#
-#     return combined
+def get_hierarchical_data_for_apps(apps):
+    """
+    Return a hierarchical data structure consisting of nested OrderedDicts for all data collected for apps listed
+    in `apps`. The format of the returned data structure is:
 
+    ```
+    {
+        <session_1_code>: {
+            'code': ...,
+            'label': ...,
+            # more session data
+            # ...
+            '__apps': {  # list of apps as requested in `apps` argument
+                <app_1_name>: [                  # list of subsessions in app 1 played in session 1
+                    {
+                        'round_number': 1,
+                        # more subsession data
+                        # ...
+                        '__group': [                 # list of groups in subsession 1 of app 1 played in session 1
+                            {
+                                'id_in_subsession': 1,
+                                # more group data
+                                # ...
+                                '__player': [            # list of players in group 1 in subsession 1 of app 1 played in session 1
+                                    {
+                                        "id_in_group": 1,
+                                        # more player data
+                                        # ...
+                                        '__participant': {   # reference to participant for this player
+                                            "id_in_session": 1,
+                                            "code": "5ilq0fad",
+                                            # more participant data
+                                            # ...
+                                        },
+                                        '__custom_model': [  # some optional custom model data connected to this player (could also be connected to group or subsession)
+                                            # custom model data
+                                        ]
+                                    }, # more players in this group
+                                ]
+                            }, # more groups in this session
+                        ]
+                    }, # more subsessions (rounds) in this app
+                ]
+            },  # more apps in this session
+        },
+        <session_2_code>: { # similar to above },
+        # ...
+    }
+    ```
+    """
+
+    combined = OrderedDict()
+
+    for app in apps:
+        sessions = get_hierarchical_data_for_app(app)
+
+        for sess in sessions:
+            sesscode = sess['code']
+            if sesscode not in combined.keys():
+                combined[sesscode] = OrderedDict([(k, v) for k, v in sess.items() if k != '__subsession'])
+                combined[sesscode]['__apps'] = OrderedDict()
+
+            combined[sesscode]['__apps'][app] = sess['__subsession']
+
+    return combined
+
+
+def get_hierarchical_data_for_app(app_name, return_columns=False):
+    """
+    Generate hierarchical structured data for app `app_name`, optionally returning flattened field names.
+    """
+
+    models_module = get_models_module(app_name)
+
+    # get the standard models
+    Player = models_module.Player
+    Group = models_module.Group
+    Subsession = models_module.Subsession
+
+    # get the custom models configuration
+    custom_models_conf = get_custom_models_conf(models_module, for_action='export_data')
+
+    # build standard models' columns
+    columns_for_models = {m.__name__.lower(): export.get_fields_for_csv(m)
+                          for m in [Player, Group, Subsession, Participant, Session]}
+
+    # build custom models' columns
+    columns_for_custom_models = get_custom_models_columns(custom_models_conf, for_action='export_data')
+
+    custom_models_links = get_links_between_std_and_custom_models(custom_models_conf, for_action='export_data')
+    std_models_select_related = defaultdict(list)
+    for smodel_class, cmodels_links in custom_models_links.items():
+        smodel_lwr = smodel_class.__name__.lower()
+        for cmodel_class, _ in cmodels_links:
+            std_models_select_related[smodel_lwr].append(cmodel_class.__name__.lower())
+
+    # create lists of IDs that will be used for the export
+    participant_ids = set(Player.objects.values_list('participant_id', flat=True))
+    session_ids = set(Subsession.objects.values_list('session_id', flat=True))
+
+    # create standard model querysets
+    qs_participant = Participant.objects.filter(id__in=participant_ids)
+    qs_player = Player.objects.filter(session_id__in=session_ids)\
+        .order_by('id')\
+        .select_related(*std_models_select_related.get('player', [])).values()
+    qs_group = Group.objects.filter(session_id__in=session_ids)\
+        .select_related(*std_models_select_related.get('group', []))
+    qs_subsession = Subsession.objects.filter(session_id__in=session_ids)\
+        .select_related(*std_models_select_related.get('subsession', []))
+
+    # create prefetch dictionaries from querysets that map IDs to subsets of the data
+
+    prefetch_filter_ids_for_custom_models = {}   # stores IDs per standard oTree model to be used for
+                                                 # custom data prefetching
+
+    # session ID -> subsession rows for this session
+    prefetch_subsess = _rows_per_key_from_queryset(qs_subsession, 'session_id')
+    prefetch_filter_ids_for_custom_models['subsession'] = _set_of_ids_from_rows_per_key(prefetch_subsess, 'id')
+
+    # subsession ID -> group rows for this subsession
+    prefetch_group = _rows_per_key_from_queryset(qs_group, 'subsession_id')
+    prefetch_filter_ids_for_custom_models['group'] = _set_of_ids_from_rows_per_key(prefetch_group, 'id')
+
+    # group ID -> player rows for this group
+    prefetch_player = _rows_per_key_from_queryset(qs_player, 'group_id')
+    prefetch_filter_ids_for_custom_models['player'] = _set_of_ids_from_rows_per_key(prefetch_player, 'id')
+
+    # prefetch dict for custom data models
+    prefetch_custom = defaultdict(dict)   # standard oTree model name -> custom model name -> data rows
+    for smodel, cmodel_links in custom_models_links.items():  # per oTree std. model
+        smodel_name_lwr = smodel.__name__.lower()
+
+        # IDs that occur for that model
+        filter_ids = prefetch_filter_ids_for_custom_models[smodel_name_lwr]
+
+        # iterate per custom model
+        for model, link_field_name in cmodel_links:
+            # prefetch custom model objects that are linked to these oTree std. model IDs
+            filter_kwargs = {link_field_name + '__in': filter_ids}
+            custom_qs = model.objects.filter(**filter_kwargs).values()
+
+            # store to the dict
+            m = model.__name__.lower()
+            prefetch_custom[smodel_name_lwr][m] = _rows_per_key_from_queryset(custom_qs, link_field_name)
+
+    # build the final nested data structure
+    output_nested = []
+    ordered_columns_per_model = OrderedDict()
+    # 1. each session
+    for sess in Session.objects.filter(id__in=session_ids).values():
+        sess_cols = columns_for_models['session']
+        if 'session' not in ordered_columns_per_model:
+            ordered_columns_per_model['session'] = sess_cols
+
+        out_sess = _odict_from_row(sess, sess_cols)
+
+        # 1.1. each subsession in the session
+        out_sess['__subsession'] = []
+        for subsess in prefetch_subsess[sess['id']]:
+            subsess_cols = columns_for_models['subsession']
+            if 'subsession' not in ordered_columns_per_model:
+                ordered_columns_per_model['subsession'] = subsess_cols
+
+            out_subsess = _odict_from_row(subsess, subsess_cols)
+
+            # 1.1.1. each possible custom models connected to this subsession
+            subsess_custom_models_rows = prefetch_custom.get('subsession', {})
+            for subsess_cmodel_name, subsess_cmodel_rows in subsess_custom_models_rows.items():
+                cmodel_cols = columns_for_custom_models[subsess_cmodel_name]
+                if subsess_cmodel_name not in ordered_columns_per_model:
+                    ordered_columns_per_model[subsess_cmodel_name] = cmodel_cols
+
+                out_subsess['__' + subsess_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
+                                                           for cmodel_row in subsess_cmodel_rows[subsess['id']]]
+
+            # 1.1.2. each group in this subsession
+            out_subsess['__group'] = []
+            for grp in prefetch_group[subsess['id']]:
+                grp_cols = columns_for_models['group']
+                if 'group' not in ordered_columns_per_model:
+                    ordered_columns_per_model['group'] = grp_cols
+
+                out_grp = _odict_from_row(grp, grp_cols)
+
+                # 1.1.2.1. each possible custom models connected to this group
+                grp_custom_models_rows = prefetch_custom.get('group', {})
+                for grp_cmodel_name, grp_cmodel_rows in grp_custom_models_rows.items():
+                    cmodel_cols = columns_for_custom_models[grp_cmodel_name]
+                    if grp_cmodel_name not in ordered_columns_per_model:
+                        ordered_columns_per_model[grp_cmodel_name] = cmodel_cols
+
+                    out_grp['__' + grp_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
+                                                       for cmodel_row in grp_cmodel_rows[grp['id']]]
+
+                # 1.1.2.2. each player in this group
+                out_grp['__player'] = []
+                for player in prefetch_player[grp['id']]:
+                    # because player.payoff is a property
+                    player['payoff'] = player['_payoff']
+                    player['role'] = player['_role']
+
+                    player_cols = columns_for_models['player'] + ['participant_id']
+                    if 'player' not in ordered_columns_per_model:
+                        ordered_columns_per_model['player'] = player_cols
+
+                    out_player = _odict_from_row(player, player_cols)
+
+                    # 1.1.2.2.1. participant object connected to this player
+                    participant_obj = qs_participant.get(id=out_player['participant_id'])
+                    out_player['__participant'] = _odict_from_row(participant_obj,
+                                                                  columns_for_models['participant'],
+                                                                  is_obj=True)
+                    out_player['__participant']['vars'] = participant_obj.vars
+
+                    # 1.1.2.2.2. each possible custom models connected to this player
+                    player_custom_models_rows = prefetch_custom.get('player', {})
+                    for player_cmodel_name, player_cmodel_rows in player_custom_models_rows.items():
+                        cmodel_cols = columns_for_custom_models[player_cmodel_name]
+                        if player_cmodel_name not in ordered_columns_per_model:
+                            ordered_columns_per_model[player_cmodel_name] = cmodel_cols
+
+                        out_player['__' + player_cmodel_name] = [_odict_from_row(cmodel_row, cmodel_cols)
+                                                                 for cmodel_row in player_cmodel_rows[player['id']]]
+
+                    out_grp['__player'].append(out_player)
+
+                out_subsess['__group'].append(out_grp)
+
+            out_sess['__subsession'].append(out_subsess)
+
+        output_nested.append(out_sess)
+
+    # generate column names
+    columns_flat = []
+    for model_name, model_cols in ordered_columns_per_model.items():
+        columns_flat.extend(['.'.join((model_name, c)) for c in model_cols])
+
+    if return_columns:
+        return output_nested, columns_flat
+    else:
+        return output_nested
 
 
 def sanitize_pdvalue_for_live_update(x):
@@ -335,12 +510,12 @@ def _odict_from_row(row, columns, is_obj=False):
     return OrderedDict((c, export.sanitize_for_csv(getattr(row, c) if is_obj else row[c])) for c in columns)
 
 
-def get_custom_models_columns(custom_model_conf):
+def get_custom_models_columns(custom_model_conf, for_action):
     """
     Obtain columns (fields) for each custom model in `custom_model_conf`.
     """
 
-    columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf['data_view'],
+    columns_for_models = {name.lower(): get_field_names_for_custom_model(conf['class'], conf.get(for_action, {}),
                                                                          use_attname=True)
                           for name, conf in custom_model_conf.items()}
 
@@ -394,7 +569,7 @@ def get_rows_for_data_tab_app(session, app_name):
     custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
 
     # find out column names for custom models
-    custom_models_colnames = get_custom_models_columns(custom_models_conf)
+    custom_models_colnames = get_custom_models_columns(custom_models_conf, for_action='data_view')
 
     # identify links between standard and custom models
     links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
@@ -441,7 +616,7 @@ def get_rows_for_custom_export(app_name):
     custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
 
     # find out column names for custom models
-    custom_models_colnames = get_custom_models_columns(custom_models_conf)
+    custom_models_colnames = get_custom_models_columns(custom_models_conf, for_action='data_view')
 
     # identify links between standard and custom models
     links_to_custom_models = get_links_between_std_and_custom_models(custom_models_conf, for_action='data_view')
@@ -499,7 +674,7 @@ class SessionDataExtension(SessionData):
             custom_models_conf = get_custom_models_conf(models_module, for_action='data_view')
 
             # find out column names for custom models
-            custom_models_colnames = get_custom_models_columns(custom_models_conf)
+            custom_models_colnames = get_custom_models_columns(custom_models_conf, for_action='data_view')
 
             pfields, gfields, sfields = export.get_fields_for_data_tab(app_name)
             gfields = [c for c in gfields if c != 'id_in_subsession']
