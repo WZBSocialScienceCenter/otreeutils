@@ -12,6 +12,8 @@ from otree.api import (
 )
 
 from otree.db.models import ForeignKey, Model
+from otreeutils.admin_extensions import custom_export
+
 
 author = 'Markus Konrad'
 
