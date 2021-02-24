@@ -15,7 +15,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 GITHUB_URL = 'https://github.com/WZBSocialScienceCenter/otreeutils'
 
-DEPS_BASE = ['otree>=3.3']
+DEPS_BASE = ['otree>=3.3,<4']
 
 DEPS_EXTRA = {
     'admin': ['pandas>=1.0,<1.3'],
