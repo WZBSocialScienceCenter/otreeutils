@@ -138,18 +138,21 @@
                 if (i >= old_json.length || new_json[i][j] !== old_json[i][j]) {
                     let rawValue = new_json[i][j];
 
-                    if ($row.length === 0) {    // add new row
-                        $tbody.append(createTableRow(new Array(numCols).fill(''), p_id - 1));
+                    if (j === 0 && $row.length === 0) {    // add new row
+                        $tbody.append(
+                            createTableRow([String(new_json[i][0])].concat(new Array(numCols - 1).fill('')),
+                            p_id - 1)
+                        );
                         $row = $tbody.find(`tr:last`);
+                    } else {
+                        let $cell = $row.find(`td:eq(${j})`);
+                        let new_value = makeCellDisplayValue(rawValue);
+                        $cell.text(new_value);
+                        flashGreen($cell);
+                        let fieldName = field_headers[j];
+                        let newValueTrunc = truncateStringEllipsis(new_value, 7);
+                        rowChanges.push(`${fieldName}=${newValueTrunc}`);
                     }
-
-                    let $cell = $row.find(`td:eq(${j})`);
-                    let new_value = makeCellDisplayValue(rawValue);
-                    $cell.text(new_value);
-                    flashGreen($cell);
-                    let fieldName = field_headers[j];
-                    let newValueTrunc = truncateStringEllipsis(new_value, 7);
-                    rowChanges.push(`${fieldName}=${newValueTrunc}`);
                 }
 
                 $row.find(`th:first`).text('P' + p_id);
