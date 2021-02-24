@@ -1,0 +1,265 @@
+{% extends "otree/admin/Session.html" %}
+
+{% block internal_styles %}
+  {{ block.super }}
+  <style>
+    #bottom-toolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      background-color: white;
+      padding-bottom: 5px;
+      padding-left: 5px;
+      width: 100%;
+    }
+
+    .field-header {
+      position: sticky;
+      top: 0;
+      background-color: white;
+    }
+
+    .id-in-session {
+      position: sticky;
+      left: 0;
+      background-color: white;
+    }
+
+    #cur-app {
+      font-weight: bold;
+      width: 30ch;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis"
+    }
+
+  </style>
+{% endblock %}
+
+{% block no_container_content %}
+  {{ block.super }}
+
+  {% for table in tables %}
+    <table class="table results-table table-hover">
+      <thead style="background-color: white; z-index: 1000">
+      <tr>
+        <th></th>
+        {% for header in table.pfields %}
+          <th class="field-header">player.<br>{{ header }}</th>
+        {% endfor %}
+        {% for cmodel_name, cmodel_header in table.cfields.items %}
+            {% for header in cmodel_header %}
+                <th class="field-header">{{ cmodel_name }}.<br>{{ header }}</th>
+            {% endfor %}
+        {% endfor %}
+        {% for header in table.gfields %}
+          <th class="field-header">group.<br>{{ header }}</th>
+        {% endfor %}
+        {% for header in table.sfields %}
+          <th class="field-header">subsession.<br>{{ header }}</th>
+        {% endfor %}
+
+      </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  {% endfor %}
+  <div id="bottom-toolbar">
+    <table style="white-space:nowrap; width: 100%">
+      <tr>
+        <td>
+          <button class="btn btn-lg" id="app-prev">⮜</button>
+          <button class="btn btn-lg" id="app-next">⮞</button>
+        </td>
+        <td>
+          <button class="btn btn-lg" id="round-prev">⮜</button>
+          <button class="btn btn-lg" id="round-next">⮞</button>
+        </td>
+        <td>
+          <button class="btn btn-lg" id="btn-refresh">↻</button>
+        </td>
+        <td style="width: 12ch">
+          <a href="{% url 'ExportSessionWide' session.code %}">Plain</a> |
+          <a href="{% url 'ExportSessionWide' session.code %}?excel=1">Excel</a>
+        </td>
+      </tr>
+      <tr>
+        <td style="width: 30ch">
+          <div id="cur-app"></div>
+        </td>
+        <td style="width: 10ch; font-weight: bold">Round <span id="cur-round"></span></td>
+        <td><small><span id="msg-refreshed" style="display: none; color: darkgreen"></span></small></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+  <div id="server_error" class="alert alert-danger" style="display: none;">
+    <a href="#" class="close" data-dismiss="alert">&times;</a>
+    Failed to connect to server
+  </div>
+{% endblock %}
+
+{% block internal_scripts %}
+  {{ block.super }}
+  <script>
+      let getElementById = (id) => document.getElementById(id);
+      let visibleTableIndex = 0;
+      let old_json = null;
+      let curAppSpan = getElementById('cur-app');
+      let curRoundSpan = getElementById('cur-round');
+      let tables = document.getElementsByClassName('results-table');
+      const round_numbers_by_subsession = {{ round_numbers_by_subsession|safe }};
+      const app_names_by_subsession = {{ app_names_by_subsession|safe }};
+      const FIELD_HEADERS = {{ field_headers_json|safe }};
+      $(document).ready(function () {
+          $('#btn-refresh').click(function () {
+              ajax_json_results(true);
+          })
+          ajax_json_results(false);
+      });
+
+      function populateTableBodyExtension(tbody, rows) {
+        for (let i = 0; i < rows.length; i++) {
+            tbody.appendChild(createTableRow(rows[i], Number(rows[i][1]) - 1));
+        }
+      }
+
+      function updateDataTableAppendable($table, new_json, old_json, field_headers) {
+        let changeDescriptions = [];
+        let $tbody = $table.find('tbody');
+        // build table for the first time
+        let numCols = new_json[0].length;
+        for (let i = 0; i < new_json.length; i++) {
+            let p_id = Number(new_json[i][1]);
+            let rowChanges = [];
+            for (let j = 0; j < numCols; j++) {
+                let $row = $tbody.find(`tr:eq(${i})`);
+
+                if (i >= old_json.length || new_json[i][j] !== old_json[i][j]) {
+                    let rawValue = new_json[i][j];
+
+                    if (j === 0 && $row.length === 0) {    // add new row
+                        $tbody.append(
+                            createTableRow([String(new_json[i][0])].concat(new Array(numCols - 1).fill('')),
+                            p_id - 1)
+                        );
+                        $row = $tbody.find(`tr:last`);
+                    } else {
+                        let $cell = $row.find(`td:eq(${j})`);
+                        let new_value = makeCellDisplayValue(rawValue);
+                        $cell.text(new_value);
+                        flashGreen($cell);
+                        let fieldName = field_headers[j];
+                        let newValueTrunc = truncateStringEllipsis(new_value, 7);
+                        rowChanges.push(`${fieldName}=${newValueTrunc}`);
+                    }
+                }
+
+                $row.find(`th:first`).text('P' + p_id);
+            }
+            if (rowChanges.length > 0) {
+                // @ makes it easier to scan visually
+                changeDescriptions.push(`@P${p_id}: ${rowChanges.join(', ')}`)
+            }
+        }
+        return changeDescriptions;
+    }
+
+      function updateTableVisibility() {
+          for (let table of tables) {
+              table.style.display = 'none';
+          }
+          tables[visibleTableIndex].style.display = 'block';
+          let curApp = app_names_by_subsession[visibleTableIndex];
+          let curRound = round_numbers_by_subsession[visibleTableIndex];
+          curAppSpan.innerText = curApp;
+          curRoundSpan.innerText = curRound;
+          getElementById('app-prev').disabled = curApp === app_names_by_subsession[0];
+          getElementById('app-next').disabled = curApp === app_names_by_subsession[app_names_by_subsession.length - 1];
+          getElementById('round-prev').disabled = visibleTableIndex === 0;
+          getElementById('round-next').disabled = visibleTableIndex === tables.length - 1;
+
+      }
+
+      updateTableVisibility();
+
+      getElementById('app-prev').addEventListener('click', function () {
+          let curApp = app_names_by_subsession[visibleTableIndex];
+          for (let i = visibleTableIndex - 1; i >= 0; i--) {
+              if (app_names_by_subsession[i] !== curApp && round_numbers_by_subsession[i] === 1) {
+                  visibleTableIndex = i;
+                  break;
+              }
+          }
+          updateTableVisibility();
+      })
+
+      getElementById('app-next').addEventListener('click', function () {
+          let curApp = app_names_by_subsession[visibleTableIndex];
+          for (let i = visibleTableIndex + 1; i < app_names_by_subsession.length; i++) {
+              if (app_names_by_subsession[i] !== curApp) {
+                  visibleTableIndex = i;
+                  break;
+              }
+          }
+          updateTableVisibility();
+      })
+
+      getElementById('round-prev').addEventListener('click', function () {
+          if (visibleTableIndex > 0) visibleTableIndex--;
+          updateTableVisibility();
+      })
+
+      getElementById('round-next').addEventListener('click', function () {
+          if (visibleTableIndex < tables.length - 1) visibleTableIndex++;
+          updateTableVisibility();
+      })
+
+
+      function ajax_json_results(isRefresh) {
+          let $msgRefreshed = $('#msg-refreshed');
+
+          $.ajax({
+              url: '{% url "SessionDataAjax" session.code %}',
+              type: 'GET',
+              contentType: "application/json",
+              error: function (jqXHR, textStatus) {
+                  $("div#server_error").show();
+              },
+              success: function (new_json) {
+                  $("div#server_error").hide();
+                  let changeDescriptions = [];
+                  for (let i = 0; i < new_json.length; i++) {
+                      let table = tables[i];
+                      let appName = app_names_by_subsession[i];
+                      let headers = FIELD_HEADERS[appName];
+                      let data = new_json[i];
+                      if (old_json === null) {
+                          populateTableBodyExtension(table.querySelector('tbody'), data);
+                      } else {
+                          changeDescriptions = changeDescriptions.concat(updateDataTableAppendable($(table), data, old_json[i], headers));
+                      }
+                  }
+                  old_json = new_json;
+                  if (!isRefresh) return;
+                  let numChanges = changeDescriptions.length;
+                  let msg;
+                  if (numChanges === 0) {
+                      msg = 'No updates';
+                  } else {
+                      msg = `Updated ${numChanges} row(s): ${changeDescriptions.join('; ')}`;
+                  }
+                  // keep it short to avoid linebreak/resizing issues
+                  if (msg.length > 100) {
+                      msg = truncateStringEllipsis(msg, 100);
+                  }
+                  $msgRefreshed.text(msg);
+                  // interrupt any ongoing fadeout
+                  $msgRefreshed.stop(true, true);
+                  $msgRefreshed.show();
+                  $msgRefreshed.fadeOut(30000);
+              }
+          });
+      }
+  </script>
+{% endblock %}

@@ -1,2 +1,1 @@
-# this is for Heroku. Locally, you should install requirements_base.txt
--r requirements_heroku.txt
+-e .[all]
