@@ -57,14 +57,19 @@ def generate_likert_field(labels, widget=None, field=None, choices_values=1):
 
 
 def generate_likert_table(labels, questions, form_name=None, help_texts=None, widget=None, use_likert_scale=True,
-                          make_label_tag=False, **kwargs):
+                          likert_scale_opts=None,  make_label_tag=False, **kwargs):
     """
     Generate a table with Likert scales between 1 and `len(labels)` in each row for questions supplied with
     `questions` as list of tuples (field name, field label).
+
     Optionally provide `help_texts` which is a list of help texts for each question (hence must be of same length
     as `questions`.
+
     If `make_label_tag` is True, then each label is surrounded by a <label>...</label> tag, otherwise it's not.
     Optionally set `widget` (default is `RadioSelect`).
+
+    You can pass additional arguments to `generate_likert_field` via `likert_scale_opts`. You can pass additional
+    arguments to the survey form definition via `**kwargs`.
     """
     if not help_texts:
         help_texts = [''] * len(questions)
@@ -76,7 +81,8 @@ def generate_likert_table(labels, questions, form_name=None, help_texts=None, wi
         raise ValueError('Number of questions must be equal to number of help texts.')
 
     if use_likert_scale:
-        field_generator = generate_likert_field(labels, widget=widget)
+        likert_scale_opts = likert_scale_opts or {}
+        field_generator = generate_likert_field(labels, widget=widget, **likert_scale_opts)
         header_labels = labels
     else:
         field_generator = partial(models.StringField, choices=labels, widget=widget or widgets.RadioSelectHorizontal)

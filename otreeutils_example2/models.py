@@ -101,7 +101,7 @@ SURVEY_DEFINITIONS = (
                  'field': likert_5point_field(),  # don't forget the parentheses at the end!
             }),
             ('q_likert_centered', {
-                 'label': 'Likert scale input that translates to values [-2, -1, 0, 1, 2]:',
+                 'help_text': 'Likert scale input that translates to values [-2, -1, 0, 1, 2]:<br>',  # HTML for line break
                  'field': likert_5point_field_centered(),
             }),
             ('q_likert_labeled', {
@@ -156,6 +156,20 @@ SURVEY_DEFINITIONS = (
                                   form_help_final='<p>Thank you!</p>',                    # HTML to be placed below form
                                   table_row_header_width_pct=15,                          # width of row header (first column) in percent. default: 25
                                   table_rows_randomize=True,                              # randomize order of displayed rows
+            ),
+            # create a second Likert scale table
+            generate_likert_table(likert_5_labels,
+                                  [
+                                      ('q_hotdog_tasty', 'Tasty'),
+                                      ('q_hotdog_spicy', 'Spicy'),
+                                  ],
+                                  form_help_initial='<p>How was your latest hot dog?</p>',  # HTML to be placed on top of form
+                                  table_row_header_width_pct=15,                            # width of row header (first column) in percent. default: 25
+                                  likert_scale_opts={   # customize `generate_likert_field()`:  set string values for choices instead of range 1 .. 5
+                                      'choices_values': [
+                                          'strong_dis', 'dis', 'neutral', 'agr', 'strong_agr'
+                                      ]
+                                  }
             )
         ]
     },
