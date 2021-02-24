@@ -13,10 +13,19 @@ from otree.api import BasePlayer, widgets, models
 from .pages import ExtendedPage
 
 
-def generate_likert_field(labels, widget=None):
+def generate_likert_field(labels, widget=None, field=None, choices_values=1):
     """
-    Return a function which generates a new `IntegerField` with a Likert scale between 1 and `len(labels)`. Use
-    `widget` as selection widget (default is `RadioSelectHorizontal`).
+    Return a function which generates a new model field with a Likert scale. By default, this generates a Likert scale
+    between 1 and `len(labels)` with steps of 1. You can adjust the Likert scale with `choices_values`. You can either
+    set an *integer* offset so that the Liker scale is then the range
+    [`choices_values` .. `len(labels) + choices_values`], or you directly pass a sequence of Likert scale values as
+    `choices_values`.
+
+    If `field` is None (default), an `IntegerField` is used if the Likert scale values are integers, otherwise a
+    `StringField` is used.  Set `field` to a model field class such as `models.StringField` to force using a certain
+    field type.
+
+    Use `widget` as selection widget (default is `RadioSelectHorizontal`).
 
     Example with a 4-point Likert scale:
 
@@ -30,9 +39,21 @@ def generate_likert_field(labels, widget=None):
     if not widget:
         widget = widgets.RadioSelectHorizontal
 
-    choices = list(zip(range(1, len(labels) + 1), labels))
+    if isinstance(choices_values, int):
+        choices_values = range(choices_values, len(labels) + choices_values)
 
-    return partial(models.IntegerField, widget=widget, choices=choices)
+    if len(choices_values) != len(labels):
+        raise ValueError('`choices_values` must be of same length as `labels`')
+
+    if field is None:
+        if all(isinstance(v, int) for v in choices_values):
+            field = models.IntegerField
+        else:
+            field = models.StringField
+
+    choices = list(zip(choices_values, labels))
+
+    return partial(field, widget=widget, choices=choices)
 
 
 def generate_likert_table(labels, questions, form_name=None, help_texts=None, widget=None, use_likert_scale=True,

@@ -4,6 +4,7 @@ from otree.api import (
 )
 
 from otreeutils.surveys import create_player_model_for_survey, generate_likert_field, generate_likert_table
+from django.forms.widgets import Select
 
 
 author = 'Markus Konrad'
@@ -59,6 +60,10 @@ likert_5_labels = (
 )
 
 likert_5point_field = generate_likert_field(likert_5_labels)
+likert_5point_field_centered = generate_likert_field(likert_5_labels, choices_values=-2)
+likert_5point_field_labeled_values = generate_likert_field(likert_5_labels, choices_values=[
+    'strong_dis', 'dis', 'neutral', 'agr', 'strong_agr'
+], widget=Select)   # also use Select widget from Django for dropdown menu
 
 
 # define survey questions per page
@@ -94,6 +99,14 @@ SURVEY_DEFINITIONS = (
             ('q_just_likert', {
                  'label': 'Another Likert scale input:',  # optional, no HTML
                  'field': likert_5point_field(),  # don't forget the parentheses at the end!
+            }),
+            ('q_likert_centered', {
+                 'label': 'Likert scale input that translates to values [-2, -1, 0, 1, 2]:',
+                 'field': likert_5point_field_centered(),
+            }),
+            ('q_likert_labeled', {
+                 'label': 'Likert scale input that translates to custom labeled values and as dropdown selection:',
+                 'field': likert_5point_field_labeled_values(),
             }),
         ]
     },
