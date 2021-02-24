@@ -1,19 +1,28 @@
 # Changes
 
 
-## v0.9.2 – 2019-09-23
+## v0.10.0 (for oTree v3.3.x) - upcoming
+
+* compatibility for oTree v3.3.x -- dropped support for older oTree versions
+* `surveys` module:
+    * made `generate_likert_field()` more flexible with parameters `field` and `choices_values`
+    * added option to pass parameters to `generate_likert_field()` for `generate_likert_table()`
+* adapted examples to show new features
+* integrated `tox` for testing
+
+## v0.9.2 (for oTree v2.1.x) – 2019-09-23
 
 * `surveys` module:
     * added missing "change" triggers when checkboxes are selected in Likert table via clicking/touching the table cell
     * added a check to require the `survey_definitions` argument to be a tuple in `create_player_model_for_survey`
 
-## v0.9.1 – 2019-06-13
+## v0.9.1 (for oTree v2.1.x) – 2019-06-13
 
 * `surveys` module:
     * added option `table_repeat_header_each_n_rows` to `generate_likert_table()`
     * fixed problem where form options like `form_help_initial` were ignored
 
-## v0.9.0 – 2019-05-28
+## v0.9.0 (for oTree v2.1.x) – 2019-05-28
 
 * `surveys` module:
     * add several options to `generate_likert_table()` to adjust display and behavior of Likert tables
