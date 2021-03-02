@@ -4,7 +4,7 @@ oTree extension to write own shell scripts.
 This is uses a lot of code copied from the "otree_startup" package, which is part of "otree-core" (see
 https://github.com/oTree-org/otree-core).
 
-March 2019, Markus Konrad <markus.konrad@wzb.eu>
+March 2021, Markus Konrad <markus.konrad@wzb.eu>
 """
 
 import os

@@ -1,7 +1,7 @@
 """
 Model definitions including "custom data models" `FruitOffer` and `Purchase`.
 
-July 2018, Markus Konrad <markus.konrad@wzb.eu>
+March 2021, Markus Konrad <markus.konrad@wzb.eu>
 """
 
 import random

@@ -2,6 +2,8 @@
 
 July/Sept. 2018, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
+Updated in March 2021 for compatibility with oTree 3.3.x.
+
 This repository contains the companion code for the article [*oTree: Implementing experiments with dynamically determined data quantity*](https://doi.org/10.1016/j.jbef.2018.10.006) published in a Special Issue on "Software for Experimental Economics" in the *Journal of Behavioral and Experimental Finance*.
 
 The experiment "market" that is provided as [oTree](http://www.otree.org/) application serves as a illustrative example for a simple stylized market simulation. Many individuals (1 ... *N*-1) are selling fruit. In each round, these sellers choose a kind of fruit and a selling price, whereas individual *N* (the buyer) needs to choose from which of those offers to buy. The implemenation follows the principle suggested in the paper, relying on "custom data models" from oTree's underlying Django framework.
@@ -12,9 +14,9 @@ This project also illustrates how the admin interface extensions of the package 
 
 ## Requirements
 
-This project requires otree and [otreeutils 0.5 or newer](https://github.com/WZBSocialScienceCenter/otreeutils).
+This project requires otree and [otreeutils 0.10 or newer](https://github.com/WZBSocialScienceCenter/otreeutils).
 
-The code has been tested with oTree v2.1.14 but should run with any oTree version of at least v2.0. 
+The code has been tested with oTree v3.3.11 but should run on new oTree versions of the 3.3.x branch. 
 
 ## License
 

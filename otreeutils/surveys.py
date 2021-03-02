@@ -2,7 +2,7 @@
 Survey extensions that allows to define survey questions with a simple data structure and then automatically creates
 the necessary model fields and pages.
 
-March 2019, Markus Konrad <markus.konrad@wzb.eu>
+March 2021, Markus Konrad <markus.konrad@wzb.eu>
 """
 
 from functools import partial

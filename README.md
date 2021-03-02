@@ -408,7 +408,7 @@ from otreeutils.admin_extensions import custom_export
 
 This makes sure that the data from the custom data models can be exported via oTree's admin interface.
 
-#### 4. Update `settings.py` to load the custom URLs and channel routes
+#### 5. Update `settings.py` to load the custom URLs and channel routes
 
 Add this line to your `settings.py`:
 

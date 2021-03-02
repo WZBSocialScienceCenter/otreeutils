@@ -1,7 +1,7 @@
 """
 Example script to output *all* data for given list of apps as hierarchical data structure in JSON format.
 
-Feb. 2020, Markus Konrad <markus.konrad@wzb.eu>
+Feb. 2021, Markus Konrad <markus.konrad@wzb.eu>
 """
 
 import sys
