@@ -7,7 +7,7 @@ import os
 from setuptools import setup, find_packages
 
 __title__ = 'otreeutils'
-__version__ = '0.10.0-dev'
+__version__ = '0.10.0'
 __author__ = 'Markus Konrad'
 __license__ = 'Apache License 2.0'
 
