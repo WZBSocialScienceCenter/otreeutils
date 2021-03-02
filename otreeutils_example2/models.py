@@ -4,6 +4,7 @@ from otree.api import (
 )
 
 from otreeutils.surveys import create_player_model_for_survey, generate_likert_field, generate_likert_table
+from django.forms.widgets import Select
 
 
 author = 'Markus Konrad'
@@ -34,6 +35,7 @@ class Group(BaseGroup):
 GENDER_CHOICES = (
     ('female', 'Female'),
     ('male', 'Male'),
+    ('other', 'Other'),
     ('no_answer', 'Prefer not to answer'),
 )
 
@@ -58,14 +60,29 @@ likert_5_labels = (
     'Strongly agree'
 )
 
+likert_5_labels_html = (
+    '<b>Strongly</b> disagree',
+    'Disagree',
+    'Neither agree nor disagree',
+    'Agree',
+    '<b>Strongly</b> agree'
+)
+
+
 likert_5point_field = generate_likert_field(likert_5_labels)
+likert_5point_field_html = generate_likert_field(likert_5_labels_html, html_labels=True)
+likert_5point_field_centered = generate_likert_field(likert_5_labels, choices_values=-2)
+likert_5point_values = ['strong_dis', 'dis', 'neutral', 'agr', 'strong_agr']
+likert_5point_field_labeled_values = generate_likert_field(likert_5_labels,
+                                                           choices_values=likert_5point_values,
+                                                           widget=Select)   # also use Select widget from Django for dropdown menu
 
 
 # define survey questions per page
 # for each page define a page title and a list of questions
 # the questions have a field name, a question text (input label), and a field type (model field class)
-SURVEY_DEFINITIONS = (
-    {
+SURVEY_DEFINITIONS = {
+    'SurveyPage1': {
         'page_title': 'Survey Questions - Page 1 - Simple questions and inputs',
         'survey_fields': [
             ('q_age', {   # field name (which will also end up in your "Player" class and hence in your output data)
@@ -78,7 +95,7 @@ SURVEY_DEFINITIONS = (
             }),
         ]
     },
-    {
+    'SurveyPage2': {
         'page_title': 'Survey Questions - Page 2 - Likert 5-point scale',
         'survey_fields': [
             ('q_otree_surveys', {  # most of the time, you'd add a "help_text" for a Likert scale question. You can use HTML:
@@ -95,9 +112,21 @@ SURVEY_DEFINITIONS = (
                  'label': 'Another Likert scale input:',  # optional, no HTML
                  'field': likert_5point_field(),  # don't forget the parentheses at the end!
             }),
+            ('q_likert_htmllabels', {
+                 'help_text': 'Another Likert scale input, this time the labels use HTML for bold text:<br>',  # HTML for line break
+                 'field': likert_5point_field_html(),  # don't forget the parentheses at the end!
+            }),
+            ('q_likert_centered', {
+                 'help_text': 'Likert scale input that translates to values [-2, -1, 0, 1, 2]:<br>',  # HTML for line break
+                 'field': likert_5point_field_centered(),
+            }),
+            ('q_likert_labeled', {
+                 'label': 'Likert scale input that translates to custom labeled values and as dropdown selection:',
+                 'field': likert_5point_field_labeled_values(),
+            }),
         ]
     },
-    {
+    'SurveyPage3': {
         'page_title': 'Survey Questions - Page 3 - Several forms',
         'survey_fields': [   # you can also split questions into several forms for better CSS styling
             {                # you need to provide a dict then. you can add more keys to the dict which are then available in the template
@@ -126,7 +155,7 @@ SURVEY_DEFINITIONS = (
             },
         ]
     },
-    {
+    'SurveyPage4': {
         'page_title': 'Survey Questions - Page 4 - Likert scale table',
         'survey_fields': [
             # create a table of Likert scale choices
@@ -143,10 +172,24 @@ SURVEY_DEFINITIONS = (
                                   form_help_final='<p>Thank you!</p>',                    # HTML to be placed below form
                                   table_row_header_width_pct=15,                          # width of row header (first column) in percent. default: 25
                                   table_rows_randomize=True,                              # randomize order of displayed rows
+            ),
+            # create a second Likert scale table
+            generate_likert_table(likert_5_labels,
+                                  [
+                                      ('q_hotdog_tasty', 'Tasty'),
+                                      ('q_hotdog_spicy', 'Spicy'),
+                                  ],
+                                  form_help_initial='<p>How was your latest hot dog?</p>',  # HTML to be placed on top of form
+                                  table_row_header_width_pct=15,                            # width of row header (first column) in percent. default: 25
+                                  likert_scale_opts={   # customize `generate_likert_field()`:  set string values for choices instead of range 1 .. 5
+                                      'choices_values': [
+                                          'strong_dis', 'dis', 'neutral', 'agr', 'strong_agr'
+                                      ]
+                                  }
             )
         ]
     },
-    {
+    'SurveyPage5': {
         'page_title': 'Survey Questions - Page 5 - Forms depending on other variable',
         'survey_fields': [  # we define two forms here ...
             {   # ... this one is shown when player.treatment == 1 ...
@@ -169,7 +212,7 @@ SURVEY_DEFINITIONS = (
             },
         ]
     },
-    {
+    'SurveyPage6': {
         'page_title': 'Survey Questions - Page 6 - Conditional fields and widget adjustments',
         'form_help_initial': """
             <p>Conditional fields can be made with the <code>condition_javascript</code> parameter,
@@ -197,7 +240,7 @@ SURVEY_DEFINITIONS = (
             }),
         ]
     },
-    {
+    'SurveyPage7': {
         'page_title': 'Survey Questions - Page 7 - Random data input for quick debugging',
         'survey_fields': [
             # similar to page 4
@@ -244,7 +287,7 @@ SURVEY_DEFINITIONS = (
             }
         ]
     },
-)
+}
 
 # now dynamically create the Player class from the survey definitions
 # we can also pass additional (non-survey) fields via `other_fields`

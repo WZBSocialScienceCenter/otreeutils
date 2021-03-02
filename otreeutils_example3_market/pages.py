@@ -1,7 +1,7 @@
 """
 Page definitions for the experiment.
 
-July 2018, Markus Konrad <markus.konrad@wzb.eu>
+March 2021, Markus Konrad <markus.konrad@wzb.eu>
 """
 
 
@@ -238,14 +238,15 @@ class Results(Page):
 
                 # fetch all offers from this seller in this round and iterate through them
                 for o in FruitOffer.objects.filter(seller=self.player):
-                    o.pk = None   # set primary key to None in order to store as new FruitOffer object
-
                     # find the related purchase if fruit from this offer was bought
                     related_purchase_ind = None
                     for p_i, purchase in enumerate(sales_from_seller):
-                        if purchase.fruit == o:
+                        if purchase.fruit.pk == o.pk:
                             related_purchase_ind = p_i
                             break
+
+                    # set primary key to None in order to store as new FruitOffer object
+                    o.pk = None
 
                     if related_purchase_ind is not None:
                         # decrease the amount of available fruit for this offer

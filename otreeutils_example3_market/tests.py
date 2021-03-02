@@ -38,7 +38,7 @@ class PlayerBot(Bot):
                     'id': prev_offer.pk,
                     'old_amount': prev_offer.amount,
                     'amount': 0,
-                    'price': float(prev_offer.price.to_number()),
+                    'price': float(prev_offer.price),
                     'kind': prev_offer.kind
                 }
             else:
