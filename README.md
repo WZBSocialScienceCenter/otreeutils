@@ -21,6 +21,10 @@ This repository contains the package `otreeutils`. It features a set of common h
 * More convenient development process by optional automatic fill-in of forms (saves you from clicking through many inputs during development)  
 * Setting custom URLs for pages (instead of default: the page's class name)
 
+This screenshot shows an example survey page with a Likert matrix:
+
+![survey page with Likert matrix](img/likerttable.png)
+
 The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed  via `pip install otreeutils`. 
 
 **Compatibility note:** This package is compatible with oTree v3.3.x. If you have an older oTree version, check out the [CHANGES](CHANGES.md) file to see which version is compatible with your oTree version. You can install the exact version then with `pip install otreeutils==x.y.z` where `x.y.z` denotes an otreeutils version number.
