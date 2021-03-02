@@ -3,11 +3,16 @@
 
 ## v0.10.0 (for oTree v3.3.x) - upcoming
 
-* compatibility for oTree v3.3.x -- dropped support for older oTree versions
+* added compatibility for oTree v3.3.x -- dropped support for older oTree versions
+    * better integration in session data monitor
+    * provide default `custom_export()` function for apps with linked custom data models
+* make dependency to pandas optional (only installed with `admin_extensions` option) 
 * `surveys` module:
     * made `generate_likert_field()` more flexible with parameters `field` and `choices_values`
     * added option to pass parameters to `generate_likert_field()` for `generate_likert_table()`
+* check if otreeutils is listed in `INSTALLED_APPS` 
 * adapted examples to show new features
+* fixed bug in `otreeutils_example3_market` example experiment, where amount of fruit in offers was not decreased after sales
 * integrated `tox` for testing
 
 ## v0.9.2 (for oTree v2.1.x) – 2019-09-23

@@ -30,6 +30,16 @@ class ExtendedPage(Page):
     debug = APPS_DEBUG
     debug_fill_forms_randomly = False
 
+    def __init__(self, **kwargs):
+        super(ExtendedPage, self).__init__(**kwargs)
+        from django.conf import settings
+
+        if 'otreeutils' not in settings.INSTALLED_APPS:
+            raise RuntimeError('otreeutils is missing from the INSTALLED_APPS list in your oTree settings '
+                               'file (settings.py); please refer to '
+                               'https://github.com/WZBSocialScienceCenter/otreeutils#installation-and-setup '
+                               'for more help')
+
     @classmethod
     def url_pattern(cls, name_in_url):
         if cls.custom_name_in_url:
@@ -38,7 +48,7 @@ class ExtendedPage(Page):
                 cls.custom_name_in_url,
             )
         else:
-            return super().url_pattern(name_in_url)
+            return super(ExtendedPage, cls).url_pattern(name_in_url)
 
     @classmethod
     def get_url(cls, participant_code, name_in_url, page_index):
@@ -48,7 +58,7 @@ class ExtendedPage(Page):
                 custom_name_in_url=cls.custom_name_in_url, page_index=page_index
             )
         else:
-            return super().get_url(participant_code, name_in_url, page_index)
+            return super(ExtendedPage, cls).get_url(participant_code, name_in_url, page_index)
 
     # @classmethod
     # def url_name(cls):
@@ -65,7 +75,7 @@ class ExtendedPage(Page):
         if self.__class__ is ExtendedPage:
             return ['otreeutils/ExtendedPage.html']
         else:
-            return super().get_template_names()
+            return super(ExtendedPage, self).get_template_names()
 
     def get_page_title(self):
         """Override this method for a dynamic page title"""
@@ -108,7 +118,7 @@ class UnderstandingQuestionsPage(ExtendedPage):
 
     def get_form_fields(self):
         if self.form_model:
-            form_fields = super().get_form_fields()
+            form_fields = super(UnderstandingQuestionsPage, self).get_form_fields()
 
             if self.form_field_n_wrong_attempts:  # update form fields
                 form_fields.append(self.form_field_n_wrong_attempts)
