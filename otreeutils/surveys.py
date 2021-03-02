@@ -9,11 +9,16 @@ from functools import partial
 from collections import OrderedDict
 
 from otree.api import BasePlayer, widgets, models
+from django import forms
 
 from .pages import ExtendedPage
 
 
-def generate_likert_field(labels, widget=None, field=None, choices_values=1):
+class RadioSelectHorizontalHTMLLabels(forms.RadioSelect):
+    template_name = 'otreeutils/forms/radio_select_horizontal.html'
+
+
+def generate_likert_field(labels, widget=None, field=None, choices_values=1, html_labels=False):
     """
     Return a function which generates a new model field with a Likert scale. By default, this generates a Likert scale
     between 1 and `len(labels)` with steps of 1. You can adjust the Likert scale with `choices_values`. You can either
@@ -25,7 +30,8 @@ def generate_likert_field(labels, widget=None, field=None, choices_values=1):
     `StringField` is used.  Set `field` to a model field class such as `models.StringField` to force using a certain
     field type.
 
-    Use `widget` as selection widget (default is `RadioSelectHorizontal`).
+    Use `widget` as selection widget (default is `RadioSelectHorizontal`). Set `html_labels` to True if HTML code is
+    used in labels (this only works with the default widget).
 
     Example with a 4-point Likert scale:
 
@@ -38,6 +44,9 @@ def generate_likert_field(labels, widget=None, field=None, choices_values=1):
     """
     if not widget:
         widget = widgets.RadioSelectHorizontal
+
+    if html_labels:
+        widget = RadioSelectHorizontalHTMLLabels
 
     if isinstance(choices_values, int):
         choices_values = range(choices_values, len(labels) + choices_values)

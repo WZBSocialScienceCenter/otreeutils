@@ -59,11 +59,22 @@ likert_5_labels = (
     'Strongly agree'
 )
 
+likert_5_labels_html = (
+    '<b>Strongly</b> disagree',
+    'Disagree',
+    'Neither agree nor disagree',
+    'Agree',
+    '<b>Strongly</b> agree'
+)
+
+
 likert_5point_field = generate_likert_field(likert_5_labels)
+likert_5point_field_html = generate_likert_field(likert_5_labels_html, html_labels=True)
 likert_5point_field_centered = generate_likert_field(likert_5_labels, choices_values=-2)
-likert_5point_field_labeled_values = generate_likert_field(likert_5_labels, choices_values=[
-    'strong_dis', 'dis', 'neutral', 'agr', 'strong_agr'
-], widget=Select)   # also use Select widget from Django for dropdown menu
+likert_5point_values = ['strong_dis', 'dis', 'neutral', 'agr', 'strong_agr']
+likert_5point_field_labeled_values = generate_likert_field(likert_5_labels,
+                                                           choices_values=likert_5point_values,
+                                                           widget=Select)   # also use Select widget from Django for dropdown menu
 
 
 # define survey questions per page
@@ -99,6 +110,10 @@ SURVEY_DEFINITIONS = (
             ('q_just_likert', {
                  'label': 'Another Likert scale input:',  # optional, no HTML
                  'field': likert_5point_field(),  # don't forget the parentheses at the end!
+            }),
+            ('q_likert_htmllabels', {
+                 'help_text': 'Another Likert scale input, this time the labels use HTML for bold text:<br>',  # HTML for line break
+                 'field': likert_5point_field_html(),  # don't forget the parentheses at the end!
             }),
             ('q_likert_centered', {
                  'help_text': 'Likert scale input that translates to values [-2, -1, 0, 1, 2]:<br>',  # HTML for line break

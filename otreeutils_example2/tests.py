@@ -8,10 +8,6 @@ def rand_val_from_choices(choices):
     return random.choice([k for k, _ in choices])
 
 
-def rand_val_from_likert():
-    return random.randint(1, len(models.likert_5_labels))
-
-
 class PlayerBot(Bot):
     def play_round(self):
         yield (pages.SurveyIntro, )
@@ -22,8 +18,11 @@ class PlayerBot(Bot):
         })
 
         yield (pages.SurveyPage2, {
-            'q_otree_surveys': rand_val_from_likert(),
-            'q_just_likert': rand_val_from_likert(),
+            'q_otree_surveys': random.randint(1, len(models.likert_5_labels)),
+            'q_just_likert': random.randint(1, len(models.likert_5_labels)),
+            'q_likert_htmllabels': random.randint(1, len(models.likert_5_labels_html)),
+            'q_likert_centered': random.randint(-2, len(models.likert_5_labels) - 3),
+            'q_likert_labeled': random.choice(models.likert_5point_values),
         })
 
         yield (pages.SurveyPage3, {
@@ -39,7 +38,14 @@ class PlayerBot(Bot):
             'satiable'
         )
 
-        likert_table_data = {'q_pizza_' + k: rand_val_from_likert() for k in likert_table_rows}
+        likert_table_rows2 = (
+            'tasty',
+            'spicy'
+        )
+
+        likert_table_data = {'q_pizza_' + k: random.randint(1, len(models.likert_5_labels)) for k in likert_table_rows}
+        likert_table_data2 = {'q_hotdog_' + k: random.choice(models.likert_5point_values) for k in likert_table_rows2}
+        likert_table_data.update(likert_table_data2)
         yield (pages.SurveyPage4, likert_table_data)
 
         yield (pages.SurveyPage5, {
