@@ -114,15 +114,17 @@ def generate_likert_table(labels, questions, form_name=None, help_texts=None, wi
 
 def create_player_model_for_survey(module, survey_definitions, other_fields=None):
     """
-    Dynamically create a player model in module <module> with a survey definitions and a base player class.
-    Parameter survey_definitions is a list, where each list item is a survey definition for a single page.
+    Dynamically create a player model in module <module> with survey definitions and a base player class.
+    Parameter `survey_definitions` is either a tuple or list, where each list item is a survey definition for a
+    single page, or a dict that maps a page class name to the page's survey definition.
+
     Each survey definition for a single page consists of list of field name, question definition tuples.
     Each question definition has a "field" (oTree model field class) and a "text" (field label).
 
     Returns the dynamically created player model with the respective fields (class attributes).
     """
-    if not isinstance(survey_definitions, tuple):
-        raise ValueError('`survey_definitions` must be a tuple')
+    if not isinstance(survey_definitions, (tuple, list, dict)):
+        raise ValueError('`survey_definitions` must be a tuple, list or dict')
 
     if other_fields is None:
         other_fields = {}
@@ -130,9 +132,18 @@ def create_player_model_for_survey(module, survey_definitions, other_fields=None
         if not isinstance(other_fields, dict):
             raise ValueError('`other_fields` must be a dict with field name to field object mapping')
 
+    # oTree doesn't allow to store a mutable attribute to any of its models, so we store values and keys as tuples
+    if isinstance(survey_definitions, dict):
+        survey_defs = tuple(survey_definitions.values())
+        survey_keys = tuple(survey_definitions.keys())
+    else:
+        survey_defs = tuple(survey_definitions)
+        survey_keys = None
+
     model_attrs = {
         '__module__': module,
-        '_survey_defs': survey_definitions,
+        '_survey_defs': survey_defs,
+        '_survey_def_keys': survey_keys,
     }
 
     # collect fields
@@ -141,7 +152,12 @@ def create_player_model_for_survey(module, survey_definitions, other_fields=None
             raise ValueError('duplicate field name: `%s`' % field_name)
         model_attrs[field_name] = qdef['field']
 
-    for survey_page in survey_definitions:
+    if isinstance(survey_definitions, dict):
+        survey_definitions_iter = survey_definitions.values()
+    else:
+        survey_definitions_iter = survey_definitions
+
+    for survey_page in survey_definitions_iter:
         for fielddef in survey_page['survey_fields']:
             if isinstance(fielddef, dict):
                 for field_name, qdef in fielddef['fields']:
@@ -162,7 +178,11 @@ class _SurveyModelMixin(object):
     """Little mix-in for dynamically generated survey model classes"""
     @classmethod
     def get_survey_definitions(cls):
-        return cls._survey_defs
+        """Return survey definitions either as dict (if keys were defined) or as tuple"""
+        if cls._survey_def_keys is None:
+            return cls._survey_defs
+        else:
+            return dict(zip(cls._survey_def_keys, cls._survey_defs))
 
 
 def setup_survey_pages(form_model, survey_pages):
@@ -170,8 +190,19 @@ def setup_survey_pages(form_model, survey_pages):
     Helper function to set up a list of survey pages with a common form model
     (a dynamically generated survey model class).
     """
+
+    if not hasattr(form_model, 'get_survey_definitions'):
+        raise TypeError("`form_model` doesn't implement `get_survey_definitions()`; you probably didn't correctly "
+                        "set up the model for using surveys; please refer to "
+                        "https://github.com/WZBSocialScienceCenter/otreeutils#otreeutilssurveys-module "
+                        "for help")
+
+    if len(survey_pages) != len(form_model.get_survey_definitions()):
+        raise ValueError('the number of provided survey pages in `survey_pages` is different from the number of '
+                         'surveys defined in the model survey definition')
+
     for i, page in enumerate(survey_pages):
-        page.setup_survey(form_model, i)   # call setup function with model class and page index
+        page.setup_survey(form_model, page.__name__, i)   # call setup function with model class and page index
 
 
 class SurveyPage(ExtendedPage):
@@ -208,9 +239,21 @@ class SurveyPage(ExtendedPage):
     form_label_suffix = ':'
 
     @classmethod
-    def setup_survey(cls, player_cls, page_idx):
+    def setup_survey(cls, player_cls, page_name, page_idx):
         """Setup a survey page using model class <player_cls> and survey definitions for page <page_idx>."""
-        survey_defs = player_cls.get_survey_definitions()[page_idx]
+        survey_all_pages = player_cls.get_survey_definitions()   # this is either a tuple or a dict
+        if isinstance(survey_all_pages, tuple):
+            if 0 <= page_idx < len(survey_all_pages):
+                survey_defs = survey_all_pages[page_idx]
+            else:
+                raise RuntimeError('there is no survey definition for page with index %d' % page_idx)
+        else:
+            if page_name in survey_all_pages:
+                survey_defs = survey_all_pages[page_name]
+            else:
+                raise RuntimeError('there is no survey definition for page with name %s' % page_name)
+        del survey_all_pages
+
         cls.form_model = player_cls
         cls.page_title = survey_defs['page_title']
         cls.form_label_suffix = survey_defs.get('form_label_suffix', '')

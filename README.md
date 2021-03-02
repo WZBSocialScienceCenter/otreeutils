@@ -1,30 +1,29 @@
 # otreeutils
 
-September 2019, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+March 2021, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
 
 ## A package with common oTree utilities
 
 This repository contains the package `otreeutils`. It features a set of common helper / utility functions and classes often needed when developing experiments with [oTree](http://www.otree.org/). So far, this covers the following use cases:
 
-* Extensions to oTree's admin interface for [using custom data models](https://datascience.blog.wzb.eu/2016/10/31/using-custom-data-models-in-otree/), which include:
-    * Live session data view shows data from custom models
-    * Export page allows download of complete data with data from custom models
-    * Export page allows download in nested JSON format
-* Displaying and validating understanding questions
 * Easier creation of surveys:
     * define all survey questions in a single data structure, let `otreeutils` create the required `Player` fields
     * create a table of Likert scale inputs ("Likert matrix")
     * create single Likert scale fields from given labels
     * easy survey forms styling via CSS due to cleanly structured HTML output
-    * make survey forms with conditional inputs  
+    * make survey forms with conditional inputs
+* Extensions to oTree's admin interface for [using custom data models](https://datascience.blog.wzb.eu/2016/10/31/using-custom-data-models-in-otree/), which include:
+    * Live session data view shows data from custom models
+    * Export page allows download of complete data with data from custom models
+    * Export page allows download in nested JSON format
+* Displaying and validating understanding questions
 * Displaying warnings to participants when a timeout occurs on a page (no automatic form submission after timeout)
 * More convenient development process by optional automatic fill-in of forms (saves you from clicking through many inputs during development)  
 * Setting custom URLs for pages (instead of default: the page's class name)
 
-**Compatibility note:** This package is compatible with oTree v2.x. (It has been tested with oTree v2.1.36 but any other 2.x version should work. If you want to use this package with oTree v1.x, you should use otreeutils v0.3.1, which is the last version to support oTree 1.) 
+The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed  via `pip install otreeutils`. 
 
-The package is [available on PyPI](https://pypi.org/project/otreeutils/) and can be installed
-via `pip install otreeutils`.
+**Compatibility note:** This package is compatible with oTree v3.3.x. If you have an older oTree version, check out the [CHANGES](CHANGES.md) file to see which version is compatible with your oTree version. You can install the exact version then with `pip install otreeutils==x.y.z` where `x.y.z` denotes an otreeutils version number.
 
 ## Citation
 
@@ -47,15 +46,13 @@ The admin interface extensions have still a limitation: Data export with all dat
 
 ## Requirements
 
-This package requires oTree v2.x and [pandas](http://pandas.pydata.org/). The requirements will be installed along with otreeutils when using `pip` (see below). 
+This package requires oTree v3.3.x and optionally [pandas](http://pandas.pydata.org/). The requirements will be installed along with otreeutils when using `pip` (see below). 
 
 ## Installation and setup
 
 In order to use otreeutils in your experiment implementation, you only need to do the following things:
 
-1. Either install the package from [PyPI](https://pypi.python.org/pypi/otreeutils) via
-   *pip* (`pip install otreeutils`) or download/clone this github repository and copy
-   the `otreeutils` folder to your oTree experiment directory.
+1. Either install the package from [PyPI](https://pypi.python.org/pypi/otreeutils) via *pip* (`pip install otreeutils`) or download/clone this github repository and copy the `otreeutils` folder to your oTree experiment directory.
 2. Edit your `settings.py` so that you add "otreeutils" to your `INSTALLED_APPS` list. **Don't forget this, otherwise the required templates and static files cannot be loaded correctly!**
 
 
@@ -127,8 +124,8 @@ GENDER_CHOICES = (
 )
 
 
-SURVEY_DEFINITIONS = (
-    {
+SURVEY_DEFINITIONS = {
+    'SurveyPage1': {
         'page_title': 'Survey Questions - Page 1',
         'survey_fields': [
             ('q1_a', {   # field name (which will also end up in your "Player" class and hence in your output data)
@@ -143,10 +140,12 @@ SURVEY_DEFINITIONS = (
         ]
     },
     # ... more pages
-)
+}
 ```
 
-Now you dynamically create the `Player` class by passing the name of the module for which it will be created (should be the `models` module of your app) and the survey definitions:
+Note how `SURVEY_DEFINITIONS` is a dictionary which maps pages to the survey questions that should appear on each page. We will later create a `SurveyPage1` page class in `pages.py`.
+
+Now you create the `Player` class by passing the name of the module for which it will be created. This should be  the `models` module of your app, so in your case this is `'survey.models'` if your app is named `survey`. The second parameter is the survey definitions that we just created:
 
 ```python
 Player = create_player_model_for_survey('otreeutils_example2.models', SURVEY_DEFINITIONS)
@@ -174,7 +173,7 @@ likert_5_labels = (
     'Disagree',                     # value: 2
     'Neither agree nor disagree',   # ...
     'Agree',
-    'Strongly agree'                  # value: 5
+    'Strongly agree'                # value: 5
 )
 
 likert_5point_field = generate_likert_field(likert_5_labels)
@@ -185,8 +184,8 @@ The object `likert_5point_field` is now a *function* to generate new fields of t
 ```python
 # ...
 
-SURVEY_DEFINITIONS = (
-    {
+SURVEY_DEFINITIONS = {
+    'SurveyPage2': {
         'page_title': 'A Likert 5-point scale example',
         'survey_fields': [
             ('q_otree_surveys', {  # most of the time, you'd add a "help_text" for a Likert scale question. You can use HTML:
@@ -206,7 +205,7 @@ SURVEY_DEFINITIONS = (
         ]
     },
     # ... more pages
-)
+}
 ```
 
 The function `generate_likert_table` allows you to easily generate a table of Likert scale inputs like a matrix with the Likert scale increments in the columns and your questions in the rows:
@@ -214,8 +213,8 @@ The function `generate_likert_table` allows you to easily generate a table of Li
 ```python
 # ...
 
-SURVEY_DEFINITIONS = (
-    {
+SURVEY_DEFINITIONS = {
+    'SurveyPage3': {
         'page_title': 'A Likert scale table example',
         'survey_fields': [
             # create a table of Likert scale choices
@@ -234,7 +233,7 @@ SURVEY_DEFINITIONS = (
         ]
     },
     # ... more pages
-)
+}
 ```
 
 There are several additional parameters that you can pass to `generate_likert_table()` which will control the display and behavior of the table:
@@ -256,14 +255,13 @@ To implement advanced features such as conditional input display, have a look at
 #### `SurveyPage` class
 
 You can then create the survey pages which will contain the questions for the respective pages as defined before in `SURVEY_DEFINITIONS`:
- 
-**Please note:** Unfortunately, it was not possible for me to create the page classes dynamically, so you have to define them manually here. At least the overhead is minimal, because you don't need to define any additional attributes. However, this way you *can* also specify additional attributes, set a custom template, etc.
- 
+
 ```python
 # (in pages.py)
 
 from otreeutils.surveys import SurveyPage, setup_survey_pages
 
+# Create the survey page classes; their names must correspond to the names used in the survey definition  
 
 class SurveyPage1(SurveyPage):
     pass
@@ -272,8 +270,6 @@ class SurveyPage2(SurveyPage):
 # more pages ...
 
 # Create a list of survey pages.
-# The order is important! The survey questions are taken in the same order
-# from the SURVEY_DEFINITIONS in models.py
 
 survey_pages = [
     SurveyPage1,
@@ -355,7 +351,11 @@ print('done.')
 
 If you implement custom data models and want to use otreeutils' admin extensions you additionally need to follow these steps:
 
-#### 1. Add configuration class to custom models
+#### 1. Install all dependencies
+
+Make sure that you install otreeutils with extra dependencies via `pip install otreeutils[admin]`.
+
+#### 2. Add configuration class to custom models
 
 For each of the custom models that you want to include in the live data view or extended data export, you have to define a subclass called `CustomModelConf` like this:
 
@@ -387,7 +387,7 @@ class FruitOffer(Model):
 
 ``` 
 
-#### 2. Add a custom urls module
+#### 3. Add a custom urls module
 
 In your experiment app, add a file `urls.py` and simply include the custom URL patters from otreeutils as follows:
 
@@ -398,33 +398,30 @@ from otreeutils.admin_extensions.urls import urlpatterns
 # ...
 ```
 
-#### 3. Add a custom routing module
+#### 4. Import the `custom_export` function in `models.py`
 
-In your experiment app, add a file `routing.py` and simply include the custom channel routing patters from otreeutils as follows:
+In your experiment app, add the following line to `models.py`:
 
 ```python
-from otreeutils.admin_extensions.routing import channel_routing
-
-# add more custom channel routing rules here if necessary
-# ...
+from otreeutils.admin_extensions import custom_export
 ```
+
+This makes sure that the data from the custom data models can be exported via oTree's admin interface.
 
 #### 4. Update `settings.py` to load the custom URLs and channel routes
 
-Add these lines to your `settings.py`:
+Add this line to your `settings.py`:
 
 ```python
 ROOT_URLCONF = '<APP_PACKAGE>.urls'
-CHANNEL_ROUTING = '<APP_PACKAGE>.routing.channel_routing'
 ```
 
 Instead of `<APP_PACKAGE>` write your app's package name (e.g. "market" if your app is named "market").
 
 **And don't forget to edit your settings.py so that you add "otreeutils" to your INSTALLED_APPS list!**
 
-That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data, **when you select the download per app. So far, the "all-apps" download option will not include the custom models' data.**
+That's it! When you visit the admin pages, they won't really look different, however, the live data view will now support your custom models and in the data export view you can download the data *including* the custom models' data with the "custom" link. **So far, the "all-apps" download option will not include the custom models' data.**
 
-See also the [market example experiment](https://github.com/WZBSocialScienceCenter/otree_example_market) that uses custom data models.
 
 ## License
 

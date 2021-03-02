@@ -35,6 +35,7 @@ class Group(BaseGroup):
 GENDER_CHOICES = (
     ('female', 'Female'),
     ('male', 'Male'),
+    ('other', 'Other'),
     ('no_answer', 'Prefer not to answer'),
 )
 
@@ -80,8 +81,8 @@ likert_5point_field_labeled_values = generate_likert_field(likert_5_labels,
 # define survey questions per page
 # for each page define a page title and a list of questions
 # the questions have a field name, a question text (input label), and a field type (model field class)
-SURVEY_DEFINITIONS = (
-    {
+SURVEY_DEFINITIONS = {
+    'SurveyPage1': {
         'page_title': 'Survey Questions - Page 1 - Simple questions and inputs',
         'survey_fields': [
             ('q_age', {   # field name (which will also end up in your "Player" class and hence in your output data)
@@ -94,7 +95,7 @@ SURVEY_DEFINITIONS = (
             }),
         ]
     },
-    {
+    'SurveyPage2': {
         'page_title': 'Survey Questions - Page 2 - Likert 5-point scale',
         'survey_fields': [
             ('q_otree_surveys', {  # most of the time, you'd add a "help_text" for a Likert scale question. You can use HTML:
@@ -125,7 +126,7 @@ SURVEY_DEFINITIONS = (
             }),
         ]
     },
-    {
+    'SurveyPage3': {
         'page_title': 'Survey Questions - Page 3 - Several forms',
         'survey_fields': [   # you can also split questions into several forms for better CSS styling
             {                # you need to provide a dict then. you can add more keys to the dict which are then available in the template
@@ -154,7 +155,7 @@ SURVEY_DEFINITIONS = (
             },
         ]
     },
-    {
+    'SurveyPage4': {
         'page_title': 'Survey Questions - Page 4 - Likert scale table',
         'survey_fields': [
             # create a table of Likert scale choices
@@ -188,7 +189,7 @@ SURVEY_DEFINITIONS = (
             )
         ]
     },
-    {
+    'SurveyPage5': {
         'page_title': 'Survey Questions - Page 5 - Forms depending on other variable',
         'survey_fields': [  # we define two forms here ...
             {   # ... this one is shown when player.treatment == 1 ...
@@ -211,7 +212,7 @@ SURVEY_DEFINITIONS = (
             },
         ]
     },
-    {
+    'SurveyPage6': {
         'page_title': 'Survey Questions - Page 6 - Conditional fields and widget adjustments',
         'form_help_initial': """
             <p>Conditional fields can be made with the <code>condition_javascript</code> parameter,
@@ -239,7 +240,7 @@ SURVEY_DEFINITIONS = (
             }),
         ]
     },
-    {
+    'SurveyPage7': {
         'page_title': 'Survey Questions - Page 7 - Random data input for quick debugging',
         'survey_fields': [
             # similar to page 4
@@ -286,7 +287,7 @@ SURVEY_DEFINITIONS = (
             }
         ]
     },
-)
+}
 
 # now dynamically create the Player class from the survey definitions
 # we can also pass additional (non-survey) fields via `other_fields`

@@ -90,4 +90,3 @@ INSTALLED_APPS = [
 
 if importlib.util.find_spec('pandas'):
     ROOT_URLCONF = 'otreeutils_example3_market.urls'
-    CHANNEL_ROUTING = 'otreeutils_example3_market.routing.channel_routing'
