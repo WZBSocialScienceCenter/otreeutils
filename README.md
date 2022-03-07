@@ -1,6 +1,8 @@
 # otreeutils
 
-March 2021, Markus Konrad <markus.konrad@wzb.eu> / [Berlin Social Science Center](https://wzb.eu)
+March 2021, Markus Konrad <markus.konrad@wzb.eu> / <post@mkonrad.net> / [Berlin Social Science Center](https://wzb.eu)
+
+**This project is currently not maintained.**
 
 ## A package with common oTree utilities
 
